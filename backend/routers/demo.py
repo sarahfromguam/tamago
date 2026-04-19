@@ -22,6 +22,18 @@ DEMO_TOKEN = os.environ.get("DEMO_OURA_TOKEN", "")
 # In-memory OMI log for demo (resets on server restart)
 _omi_log: list[dict] = []
 
+# In-memory dimension visibility config per slug
+_DEFAULT_VISIBILITY = {"sleep": True, "stress": True, "meds": True, "activity": True}
+_visibility: dict[str, dict] = {}
+
+# Seeded support circle for Sarah
+_SARAH_CIRCLE = [
+    {"name": "Alex",  "phone": "+15551111111", "relationship": "Partner",   "tier": 1},
+    {"name": "Mom",   "phone": "+15552222222", "relationship": "Mother",    "tier": 1},
+    {"name": "Jenna", "phone": "+15553333333", "relationship": "Best friend","tier": 2},
+    {"name": "Dr. Kim","phone": "+15554444444","relationship": "Therapist", "tier": 2},
+]
+
 
 # ---------------------------------------------------------------------------
 # Seeded patients
@@ -63,6 +75,24 @@ SEEDED_PATIENTS = [
         "supported": True,
         "support_count": 4,
         "recommended_actions": ["call", "food", "text"],
+    },
+    {
+        "slug": "jake-sleeping",
+        "name": "Jake",
+        "phone": "+15555550202",
+        "dimensions": {"sleep": "yellow", "stress": "green", "meds": "green"},
+        "dimension_details": {
+            "sleep":    {"score": 65, "label": "5.5h",       "sublabel": "catching up",    "history": [70, 58, 62, 55, 60, 63, 65]},
+            "stress":   {"score": 80, "label": "HRV 55ms",   "sublabel": "recovering",     "history": [74, 76, 78, 80, 77, 79, 80]},
+            "activity": {"score": 68, "label": "4,800 steps", "sublabel": "moderate",       "history": [72, 65, 70, 68, 60, 66, 68]},
+            "meds":     {"score": 100, "label": "Taken",      "sublabel": "on schedule",    "history": []},
+        },
+        "vitals": {"steps": 4800, "resting_hr": 60, "hrv": 55},
+        "base": "okay",
+        "is_sleeping": True,
+        "supported": False,
+        "support_count": 0,
+        "recommended_actions": ["text", "coffee"],
     },
 ]
 
@@ -175,3 +205,43 @@ async def log_medication(body: OmiLogRequest):
 async def get_omi_log():
     """Return all OMI medication logs for this session."""
     return _omi_log
+
+
+# ---------------------------------------------------------------------------
+# Dimension visibility
+# ---------------------------------------------------------------------------
+
+class VisibilityRequest(BaseModel):
+    sleep: bool = True
+    stress: bool = True
+    meds: bool = True
+    activity: bool = True
+
+
+@router.get("/visibility/{slug}")
+async def get_visibility(slug: str):
+    """Return which dimensions are visible to supporters for this slug."""
+    return _visibility.get(slug, _DEFAULT_VISIBILITY)
+
+
+@router.put("/visibility/{slug}")
+async def set_visibility(slug: str, body: VisibilityRequest):
+    """Update which dimensions supporters can see."""
+    config = body.model_dump()
+    _visibility[slug] = config
+    return config
+
+
+# ---------------------------------------------------------------------------
+# Support circle
+# ---------------------------------------------------------------------------
+
+@router.get("/circle/{slug}")
+async def get_circle(slug: str):
+    """Return the support circle for a user (seeded for Sarah)."""
+    if slug == "sarahs-egg":
+        return _SARAH_CIRCLE
+    # Generic placeholder for seeded patients
+    return [
+        {"name": "Friend", "phone": "+15550000000", "relationship": "Friend", "tier": 1},
+    ]

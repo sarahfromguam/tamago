@@ -1,147 +1,94 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import type { DimensionDetail, DimensionState, EggState, MedicationLog, ScheduledMedication, SupportActionOut } from "../types";
+import { QRCodeSVG } from "qrcode.react";
+import type {
+  CircleMember,
+  DimensionVisibility,
+  EggState,
+  MedicationLog,
+  ScheduledMedication,
+  SupportActionOut,
+} from "../types";
 import { usePhone } from "../hooks/usePhone";
 import { useMySlug } from "../hooks/usePhone";
 import { api } from "../api/client";
 import { MOCK_TAMAGO_STATE, MOCK_SUPPORT_ACTIONS } from "../mocks/data";
 import EggCharacter from "../components/EggCharacter";
-import SupportBadge from "../components/SupportBadge";
+import { PixelHPBar, PixelVitals } from "../components/PixelHPBar";
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === "true";
 
-// ── Pixel HP Bar ────────────────────────────────────────────
-const STATE_COLORS: Record<DimensionState, { fill: string; glow: string; label: string }> = {
-  green:  { fill: "#22c55e", glow: "#86efac", label: "GOOD" },
-  yellow: { fill: "#eab308", glow: "#fde047", label: "OK" },
-  red:    { fill: "#ef4444", glow: "#fca5a5", label: "LOW" },
-  grey:   { fill: "#9ca3af", glow: "#e5e7eb", label: "N/A" },
-};
+// ── My Circle ───────────────────────────────────────────────
+const TIER_LABEL: Record<number, string> = { 1: "TIER 1", 2: "TIER 2" };
+const TIER_COLOR: Record<number, string> = { 1: "#c9856a", 2: "#9a8070" };
 
-const STAT_ICONS: Record<string, string> = {
-  sleep: "🌙",
-  stress: "💚",
-  meds: "💊",
-  activity: "👟",
-};
+function CircleSection({ slug }: { slug: string }) {
+  const [circle, setCircle] = useState<CircleMember[]>([]);
 
-function PixelHPBar({
-  label,
-  statKey,
-  state,
-  detail,
-  animDelay = 0,
-}: {
-  label: string;
-  statKey: string;
-  state: DimensionState;
-  detail?: DimensionDetail;
-  animDelay?: number;
-}) {
-  const score = detail?.score ?? 0;
-  const totalBlocks = 10;
-  const filledBlocks = state === "grey" ? 0 : Math.round((score / 100) * totalBlocks);
-  const colors = STATE_COLORS[state];
-  const history = detail?.history ?? [];
+  useEffect(() => {
+    api.getCircle(slug).then(setCircle).catch(() => {});
+  }, [slug]);
+
+  if (!circle.length) return null;
 
   return (
-    <div
-      className="pixel-box w-full p-3"
-      style={{ animationDelay: `${animDelay}ms`, animation: "fadeInUp 0.4s ease-out both" }}
-    >
-      {/* Header row */}
-      <div className="mb-2 flex items-center justify-between">
-        <span className="font-pixel text-[7px] tracking-wide" style={{ color: "#2c1a0e" }}>
-          {STAT_ICONS[statKey]} {label.toUpperCase()}
-        </span>
-        <span
-          className="font-pixel text-[7px]"
-          style={{ color: colors.fill }}
-        >
-          {state === "grey" ? "- - -" : `${score} HP`}
-        </span>
-      </div>
-
-      {/* HP Blocks */}
-      <div className="mb-1.5 flex gap-0.5">
-        {Array.from({ length: totalBlocks }).map((_, i) => (
-          <div
-            key={i}
-            className="h-4 flex-1 border border-black/20"
-            style={{
-              backgroundColor: i < filledBlocks ? colors.fill : "#e5e0d0",
-              boxShadow: i < filledBlocks ? `0 0 4px ${colors.glow}` : "none",
-              imageRendering: "pixelated",
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Sub-label + sparkline */}
-      <div className="flex items-end justify-between gap-2">
-        <div>
-          {detail?.label && (
-            <p className="font-pixel text-[6px]" style={{ color: "#6b4c35" }}>
-              {detail.label}
-            </p>
-          )}
-          {detail?.sublabel && (
-            <p className="font-pixel text-[5px] mt-0.5" style={{ color: "#9a8070" }}>
-              {detail.sublabel}
-            </p>
-          )}
-        </div>
-
-        {/* Mini sparkline pixel bars (7-day history) */}
-        {history.length > 0 && (
-          <div className="flex items-end gap-px">
-            {history.slice(-7).map((val, i) => {
-              const h = Math.max(2, Math.round((val / 100) * 16));
-              return (
-                <div
-                  key={i}
-                  className="w-1.5"
-                  style={{
-                    height: `${h}px`,
-                    backgroundColor: val >= 75 ? "#22c55e" : val >= 50 ? "#eab308" : "#ef4444",
-                    imageRendering: "pixelated",
-                  }}
-                />
-              );
-            })}
+    <div className="pixel-box w-full p-4">
+      <h3 className="mb-3 font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>👥 MY CIRCLE</h3>
+      <div className="flex flex-col gap-2">
+        {circle.map((m) => (
+          <div key={m.phone} className="flex items-center gap-3">
+            <div
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full font-bold text-white text-xs"
+              style={{ backgroundColor: TIER_COLOR[m.tier] ?? "#9a8070" }}
+            >
+              {m.name[0]}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>{m.name}</p>
+              <p className="font-pixel text-[5px]" style={{ color: "#9a8070" }}>{m.relationship}</p>
+            </div>
+            <span
+              className="font-pixel text-[5px] px-1.5 py-0.5 border"
+              style={{ color: TIER_COLOR[m.tier] ?? "#9a8070", borderColor: TIER_COLOR[m.tier] ?? "#9a8070" }}
+            >
+              {TIER_LABEL[m.tier] ?? "CIRCLE"}
+            </span>
           </div>
-        )}
-      </div>
-
-      {/* Status badge */}
-      <div className="mt-1.5 flex justify-end">
-        <span
-          className="font-pixel text-[5px] px-1.5 py-0.5 border border-current"
-          style={{ color: colors.fill, borderColor: colors.fill }}
-        >
-          {colors.label}
-        </span>
+        ))}
       </div>
     </div>
   );
 }
 
-// ── Pixel vitals row ────────────────────────────────────────
-function PixelVitals({ steps, hrv, rhr }: { steps?: number; hrv?: number; rhr?: number }) {
-  const items = [
-    { icon: "👟", label: "STEPS", value: steps != null ? steps.toLocaleString() : "—" },
-    { icon: "❤️", label: "RHR", value: rhr != null ? `${rhr}bpm` : "—" },
-    { icon: "〰️", label: "HRV", value: hrv != null ? `${hrv}ms` : "—" },
-  ];
+// ── QR Share ────────────────────────────────────────────────
+function QRShare({ slug }: { slug: string }) {
+  const [open, setOpen] = useState(false);
+  const url = `${window.location.origin}/t/${slug}`;
+
   return (
-    <div className="flex gap-2 w-full">
-      {items.map(({ icon, label, value }) => (
-        <div key={label} className="pixel-box-sm flex-1 p-2 text-center">
-          <div className="text-sm">{icon}</div>
-          <div className="font-pixel text-[5px] mt-1" style={{ color: "#9a8070" }}>{label}</div>
-          <div className="font-pixel text-[7px] mt-0.5" style={{ color: "#2c1a0e" }}>{value}</div>
+    <div className="pixel-box w-full p-4">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between"
+      >
+        <h3 className="font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>📱 SHARE YOUR TAMAGO</h3>
+        <span className="font-pixel text-[7px]" style={{ color: "#9a8070" }}>{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <div className="mt-3 flex flex-col items-center gap-3">
+          <div className="rounded-xl bg-white p-3 shadow-inner">
+            <QRCodeSVG value={url} size={160} level="M" />
+          </div>
+          <p className="font-pixel text-[6px] text-center break-all" style={{ color: "#9a8070" }}>{url}</p>
+          <button
+            onClick={() => navigator.clipboard?.writeText(url)}
+            className="border-2 border-[#2c1a0e] px-4 py-1.5 font-pixel text-[6px] transition-transform active:scale-95"
+            style={{ color: "#6b4c35", boxShadow: "2px 2px 0 0 #2c1a0e" }}
+          >
+            COPY LINK
+          </button>
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -167,9 +114,7 @@ function Onboarding({ onCreated }: { onCreated: (slug: string) => void }) {
       setPhone(phoneInput.trim());
       setCreatedSlug(user.slug);
       setStep(2);
-    } catch {
-      // handle error
-    }
+    } catch { /* noop */ }
   };
 
   const handleConnectOura = async () => {
@@ -177,37 +122,25 @@ function Onboarding({ onCreated }: { onCreated: (slug: string) => void }) {
     try {
       const { url } = await api.getOuraConnectUrl(createdSlug);
       window.location.href = url;
-    } catch {
-      setStep(3);
-    }
+    } catch { setStep(3); }
   };
 
   if (step === 1) {
     return (
       <div className="flex flex-col items-center gap-6 pt-8">
-        <span className="text-6xl">&#x1F95A;</span>
+        <span className="text-6xl">🥚</span>
         <h1 className="text-2xl font-extrabold text-gray-700">Create Your Tamago</h1>
         <div className="w-full rounded-kawaii bg-white p-6 shadow-md">
           <label className="mb-1 block text-xs font-semibold text-gray-500">Phone number</label>
-          <input
-            type="tel"
-            placeholder="+1 (555) 123-4567"
-            value={phoneInput}
+          <input type="tel" placeholder="+1 (555) 123-4567" value={phoneInput}
             onChange={(e) => setPhoneInput(e.target.value)}
-            className="mb-4 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-pink-300"
-          />
+            className="mb-4 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-pink-300" />
           <label className="mb-1 block text-xs font-semibold text-gray-500">Name your egg</label>
-          <input
-            type="text"
-            placeholder="Sarah's Egg"
-            value={nameInput}
+          <input type="text" placeholder="Sarah's Egg" value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
-            className="mb-4 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-pink-300"
-          />
-          <button
-            onClick={handleCreate}
-            className="w-full rounded-xl bg-tamago-accent py-3 font-bold text-white transition-transform active:scale-95"
-          >
+            className="mb-4 w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-pink-300" />
+          <button onClick={handleCreate}
+            className="w-full rounded-xl bg-tamago-accent py-3 font-bold text-white transition-transform active:scale-95">
             Create My Tamago
           </button>
         </div>
@@ -218,22 +151,14 @@ function Onboarding({ onCreated }: { onCreated: (slug: string) => void }) {
   if (step === 2) {
     return (
       <div className="flex flex-col items-center gap-6 pt-8">
-        <span className="text-6xl">&#x1F48D;</span>
+        <span className="text-6xl">💍</span>
         <h1 className="text-2xl font-extrabold text-gray-700">Connect Your Oura Ring</h1>
-        <p className="text-center text-sm text-gray-500">
-          We use Oura to track your sleep and readiness.
-        </p>
         <div className="w-full rounded-kawaii bg-white p-6 shadow-md">
-          <button
-            onClick={handleConnectOura}
-            className="mb-2 w-full rounded-xl bg-tamago-accent py-3 font-bold text-white transition-transform active:scale-95"
-          >
-            Connect Oura Ring &#x1F517;
+          <button onClick={handleConnectOura}
+            className="mb-2 w-full rounded-xl bg-tamago-accent py-3 font-bold text-white transition-transform active:scale-95">
+            Connect Oura Ring 🔗
           </button>
-          <button
-            onClick={() => setStep(3)}
-            className="w-full py-2 text-sm font-semibold text-gray-400"
-          >
+          <button onClick={() => setStep(3)} className="w-full py-2 text-sm font-semibold text-gray-400">
             Skip for now
           </button>
         </div>
@@ -243,33 +168,27 @@ function Onboarding({ onCreated }: { onCreated: (slug: string) => void }) {
 
   return (
     <div className="flex flex-col items-center gap-6 pt-8">
-      <span className="text-6xl">&#x1F389;</span>
+      <span className="text-6xl">🎉</span>
       <h1 className="text-2xl font-extrabold text-gray-700">Your Tamago is Ready!</h1>
-      <p className="text-center text-sm text-gray-500">
-        Share it with your support crew so they can check on you
-      </p>
-      <button
-        onClick={() => onCreated(createdSlug)}
-        className="rounded-xl bg-tamago-accent px-8 py-3 font-bold text-white transition-transform active:scale-95"
-      >
+      <button onClick={() => onCreated(createdSlug)}
+        className="rounded-xl bg-tamago-accent px-8 py-3 font-bold text-white transition-transform active:scale-95">
         View My Tamago
       </button>
     </div>
   );
 }
 
+// ── Main ────────────────────────────────────────────────────
 const _d = new Date();
 const TODAY = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, "0")}-${String(_d.getDate()).padStart(2, "0")}`;
 const UID = "user_mia";
 
-function formatTime(iso: string | null) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
-}
+const DEFAULT_VIS: DimensionVisibility = { sleep: true, stress: true, meds: true, activity: true };
 
 export default function MyTamago() {
   const { slug, setSlug } = useMySlug();
   const [state, setState] = useState<EggState | null>(null);
+  const [visibility, setVisibilityState] = useState<DimensionVisibility>(DEFAULT_VIS);
   const [support, setSupport] = useState<SupportActionOut[]>([]);
   const [schedule, setSchedule] = useState<ScheduledMedication[]>([]);
   const [todayLogs, setTodayLogs] = useState<MedicationLog[]>([]);
@@ -287,12 +206,20 @@ export default function MyTamago() {
     }
     api.getTamagoState(slug)
       .then(setState)
-      .catch(() => setState(MOCK_TAMAGO_STATE))   // fall back to demo data if API is down
+      .catch(() => setState(MOCK_TAMAGO_STATE))
       .finally(() => setLoading(false));
     api.getTodaySupport(slug).then(setSupport).catch(() => setSupport([]));
+    api.getVisibility(slug).then(setVisibilityState).catch(() => {});
     api.getSchedule(UID).then(setSchedule).catch(() => {});
     api.getLogs(UID, TODAY).then(setTodayLogs).catch(() => {});
   }, [slug]);
+
+  const toggleDimension = (key: keyof DimensionVisibility) => {
+    if (!slug) return;
+    const next = { ...visibility, [key]: !visibility[key] };
+    setVisibilityState(next);
+    api.setVisibility(slug, next).catch(() => {});
+  };
 
   if (!slug) return <Onboarding onCreated={setSlug} />;
 
@@ -332,44 +259,38 @@ export default function MyTamago() {
 
   const dims = state.dimensions;
   const details = state.dimension_details ?? {};
+
   const statRows = [
-    { key: "sleep",  label: "Sleep",  state: dims.sleep,  detail: details.sleep },
-    { key: "stress", label: "Stress", state: dims.stress, detail: details.stress },
-    { key: "meds",   label: "Meds",   state: dims.meds,   detail: details.meds },
-  ] as const;
+    { key: "sleep"  , label: "Sleep",    dimKey: "sleep"    as keyof DimensionVisibility, state: dims.sleep,  detail: details.sleep    },
+    { key: "stress" , label: "Stress",   dimKey: "stress"   as keyof DimensionVisibility, state: dims.stress, detail: details.stress   },
+    { key: "meds"   , label: "Meds",     dimKey: "meds"     as keyof DimensionVisibility, state: dims.meds,   detail: details.meds     },
+    { key: "activity", label: "Activity", dimKey: "activity" as keyof DimensionVisibility, state: (details.activity?.score ?? 0) >= 75 ? "green" as const : (details.activity?.score ?? 0) >= 50 ? "yellow" as const : details.activity ? "red" as const : "grey" as const, detail: details.activity },
+  ];
 
   return (
     <div className="flex flex-col items-center gap-3">
 
-      {/* ── MY STATS image header ── */}
-      <img
-        src="/my-stats.png"
-        alt="My Stats"
-        className="w-56 object-contain"
-        style={{ marginBottom: "-8px" }}
-      />
+      {/* Header image */}
+      <img src="/my-stats.png" alt="My Stats" className="w-56 object-contain" style={{ marginBottom: "-8px" }} />
 
-      {/* ── Egg character (tight spacing) ── */}
+      {/* Egg */}
       <div className="relative">
-        <EggCharacter
-          base={state.base}
-          isSleeping={state.is_sleeping}
-          supported={state.supported}
-          size="lg"
-        />
+        <EggCharacter base={state.base} isSleeping={state.is_sleeping} supported={state.supported} size="lg" />
         {state.is_sleeping && (
-          <span
-            className="absolute -right-2 -top-2 font-pixel text-[8px] animate-pixel-pulse"
-            style={{ color: "#7c5cbf" }}
-          >
+          <span className="absolute -right-2 -top-2 font-pixel text-[8px] animate-pixel-pulse" style={{ color: "#7c5cbf" }}>
             ZZZ
           </span>
         )}
       </div>
 
-      {/* ── Pixel stat bars ── */}
+      {/* Visibility hint */}
+      <p className="font-pixel text-[6px] text-center" style={{ color: "#9a8070" }}>
+        TAP 👁️ TO SHOW/HIDE STATS FROM YOUR FRIENDS
+      </p>
+
+      {/* Stat bars with visibility toggles */}
       <div className="w-full space-y-2 mt-1">
-        {statRows.map(({ key, label, state: dimState, detail }, i) => (
+        {statRows.map(({ key, label, dimKey, state: dimState, detail }, i) => (
           <PixelHPBar
             key={key}
             statKey={key}
@@ -377,63 +298,55 @@ export default function MyTamago() {
             state={dimState}
             detail={detail}
             animDelay={i * 80}
+            visible={visibility[dimKey]}
+            onToggle={() => toggleDimension(dimKey)}
           />
         ))}
       </div>
 
-      {/* ── Vitals row ── */}
+      {/* Vitals */}
       {state.vitals && (
-        <PixelVitals
-          steps={state.vitals.steps}
-          hrv={state.vitals.hrv}
-          rhr={state.vitals.resting_hr}
-        />
+        <PixelVitals steps={state.vitals.steps} hrv={state.vitals.hrv} rhr={state.vitals.resting_hr} />
       )}
 
-      {/* ── Refresh button ── */}
-      <button
-        onClick={handleRefresh}
+      {/* Refresh */}
+      <button onClick={handleRefresh}
         className="pixel-box-sm w-full py-2 font-pixel text-[7px] text-center transition-transform active:scale-95"
-        style={{ color: "#6b4c35" }}
-      >
+        style={{ color: "#6b4c35" }}>
         ↻ REFRESH DATA
       </button>
 
-      {/* ── Invite section ── */}
+      {/* QR share */}
+      <QRShare slug={slug} />
+
+      {/* My Circle */}
+      <CircleSection slug={slug} />
+
+      {/* Invite */}
       <div className="pixel-box w-full p-4">
         <h3 className="mb-3 font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>INVITE SUPPORTERS</h3>
         <div className="flex gap-2">
-          <input
-            type="tel"
-            placeholder="Phone number"
-            value={invitePhone}
+          <input type="tel" placeholder="Phone number" value={invitePhone}
             onChange={(e) => setInvitePhone(e.target.value)}
-            className="flex-1 border-2 border-[#2c1a0e] px-3 py-2 text-sm outline-none focus:border-tamago-accent font-body bg-[#fffef5]"
-          />
-          <button
-            onClick={handleInvite}
+            className="flex-1 border-2 border-[#2c1a0e] px-3 py-2 text-sm outline-none focus:border-tamago-accent font-body bg-[#fffef5]" />
+          <button onClick={handleInvite}
             className="border-2 border-[#2c1a0e] px-4 py-2 font-pixel text-[7px] bg-tamago-accent text-white transition-transform active:scale-95"
-            style={{ boxShadow: "2px 2px 0 0 #2c1a0e" }}
-          >
+            style={{ boxShadow: "2px 2px 0 0 #2c1a0e" }}>
             SEND
           </button>
         </div>
         {inviteSent && (
-          <p className="mt-2 text-center font-pixel text-[7px]" style={{ color: "#22c55e" }}>
-            ✓ INVITE SENT!
-          </p>
+          <p className="mt-2 text-center font-pixel text-[7px]" style={{ color: "#22c55e" }}>✓ INVITE SENT!</p>
         )}
       </div>
 
-      {/* ── Today's medications ── */}
+      {/* Today's meds */}
       {schedule.length > 0 && (
         <div className="pixel-box w-full p-4">
           <h3 className="mb-3 font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>💊 TODAY'S MEDS</h3>
           <div className="divide-y divide-[#e8d8c0]">
             {schedule.map((med) => {
-              const log = todayLogs.find(
-                (l) => l.medication_name.toLowerCase() === med.medication_name.toLowerCase()
-              );
+              const log = todayLogs.find((l) => l.medication_name.toLowerCase() === med.medication_name.toLowerCase());
               const taken = !!log;
               const scheduledStr = med.scheduled_times.map((t) => {
                 const [h, m] = t.split(":").map(Number);
@@ -448,31 +361,17 @@ export default function MyTamago() {
                       {med.dose}{med.unit ? ` ${med.unit}` : ""} · {scheduledStr}
                     </p>
                   </div>
-                  <div className="flex flex-col items-end gap-0.5">
-                    {taken ? (
-                      <span className="pill pill-green font-pixel" style={{ fontSize: "5px" }}>✓ TAKEN</span>
-                    ) : (
-                      <span className="pill pill-grey font-pixel" style={{ fontSize: "5px" }}>PENDING</span>
-                    )}
-                    {log?.taken_at && (
-                      <span className="font-pixel text-[5px]" style={{ color: "#b8a898" }}>{formatTime(log.taken_at)}</span>
-                    )}
-                  </div>
+                  <span className={`pill ${taken ? "pill-green" : "pill-grey"} font-pixel`} style={{ fontSize: "5px" }}>
+                    {taken ? "✓ TAKEN" : "PENDING"}
+                  </span>
                 </div>
               );
             })}
           </div>
-          <Link
-            to="/meds"
-            className="mt-3 flex w-full items-center justify-center gap-1.5 border-2 border-[#2c1a0e] py-2 font-pixel text-[6px] transition-colors hover:bg-[#fdf0e8]"
-            style={{ color: "#8b7060" }}
-          >
-            📋 VIEW FULL HISTORY
-          </Link>
         </div>
       )}
 
-      {/* ── Today's support ── */}
+      {/* Today's support received */}
       {support.length > 0 && (
         <div className="pixel-box w-full p-4">
           <h3 className="mb-3 font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>TODAY'S SUPPORT</h3>

@@ -62,11 +62,33 @@ export default function TamagoCard({ item }: Props) {
           supported={item.supported}
           size="sm"
         />
+        {item.is_sleeping && (
+          <div className="absolute -top-1 -right-3 flex flex-col items-start" style={{ pointerEvents: "none" }}>
+            <span className="font-pixel animate-pixel-pulse" style={{
+              fontSize: "10px",
+              color: "#1e3a6e",
+              textShadow: "0 0 4px rgba(30,58,110,0.4)",
+              lineHeight: 1,
+            }}>Z</span>
+            <span className="font-pixel animate-pixel-pulse" style={{
+              fontSize: "7px",
+              color: "#2b4f8a",
+              textShadow: "0 0 3px rgba(43,79,138,0.35)",
+              lineHeight: 1,
+              marginLeft: -3,
+              animationDelay: "0.3s",
+            }}>Z</span>
+            <span className="font-pixel animate-pixel-pulse" style={{
+              fontSize: "5px",
+              color: "#3d6bab",
+              textShadow: "0 0 2px rgba(61,107,171,0.3)",
+              lineHeight: 1,
+              marginLeft: -5,
+              animationDelay: "0.6s",
+            }}>Z</span>
+          </div>
+        )}
       </div>
-
-      {item.is_sleeping && (
-        <span className="mt-1 text-[9px] font-semibold" style={{ color: "#9080b0" }}>zz</span>
-      )}
     </Link>
   );
 }

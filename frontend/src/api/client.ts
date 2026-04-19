@@ -1,5 +1,7 @@
 import type {
   ActionType,
+  CircleMember,
+  DimensionVisibility,
   EggState,
   FeedItem,
   InviteOut,
@@ -83,5 +85,38 @@ export const api = {
   getLogs(uid: string, date?: string) {
     const q = date ? `&date=${date}` : "";
     return request<MedicationLog[]>(`/api/logs?uid=${uid}${q}`);
+  },
+
+  getVisibility(slug: string) {
+    return request<DimensionVisibility>(`/api/demo/visibility/${slug}`);
+  },
+
+  setVisibility(slug: string, config: DimensionVisibility) {
+    return request<DimensionVisibility>(`/api/demo/visibility/${slug}`, {
+      method: "PUT",
+      body: JSON.stringify(config),
+    });
+  },
+
+  getCircle(slug: string) {
+    return request<CircleMember[]>(`/api/demo/circle/${slug}`);
+  },
+
+  babyBreak(message?: string) {
+    return request<{ sent: boolean; message: string; recipients: string[]; sent_at: string }>(
+      "/api/demo/baby-break",
+      { method: "POST", body: JSON.stringify({ message }) },
+    );
+  },
+
+  logOmi(medication: string) {
+    return request<{ logged: boolean; medication: string; logged_at: string; source: string }>(
+      "/api/demo/omi-log",
+      { method: "POST", body: JSON.stringify({ medication }) },
+    );
+  },
+
+  getOmiLog() {
+    return request<{ medication: string; logged_at: string; source: string }[]>("/api/demo/omi-log");
   },
 };

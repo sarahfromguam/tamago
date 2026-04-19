@@ -42,11 +42,11 @@
 /* ── Base styles ───────────────────────────────────────── */
 body {
   /* Warm watercolour sky: baby blue top → cream → soft blush bottom */
-  background-color: #fdf8f0;
+  background-color: #e8ddd0;
   background-image:
-    radial-gradient(ellipse 90% 55% at 15%  8%, #e4f3fb99 0%, transparent 65%),
-    radial-gradient(ellipse 70% 50% at 85% 15%, #fde8f099 0%, transparent 55%),
-    radial-gradient(ellipse 80% 60% at 50% 90%, #fef3d499 0%, transparent 70%);
+    radial-gradient(ellipse 90% 55% at 15%  8%, #c8e8f8cc 0%, transparent 65%),
+    radial-gradient(ellipse 70% 50% at 85% 15%, #f0d8e8cc 0%, transparent 55%),
+    radial-gradient(ellipse 80% 60% at 50% 90%, #ead8b8cc 0%, transparent 70%);
   min-height: 100vh;
   font-family: "Baloo 2", "Nunito", sans-serif;
   -webkit-font-smoothing: antialiased;

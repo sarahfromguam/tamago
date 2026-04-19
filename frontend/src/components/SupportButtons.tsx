@@ -14,7 +14,8 @@ const ACTION_CONFIG: Record<ActionType, { icon: string; label: string; scheme?: 
   call: { icon: "\u{1F4DE}", label: "Call", scheme: "tel" },
   facetime: { icon: "\u{1F4F9}", label: "FaceTime", scheme: "facetime" },
   coffee: { icon: "\u{2615}", label: "Coffee" },
-  food: { icon: "\u{1F355}", label: "Food" },
+  food:   { icon: "\u{1F355}", label: "Food" },
+  gift:   { icon: "\u{1F381}", label: "Gift" },
 };
 
 const ALL_ACTIONS: ActionType[] = ["text", "call", "facetime", "coffee", "food"];
@@ -56,17 +57,22 @@ export default function SupportButtons({ phone, isSleeping, recommendedActions, 
           const cfg = ACTION_CONFIG[action];
           const disabled = isSleeping && disabledWhenSleeping.includes(action);
 
+          const isRecommended = recommendedActions.includes(action);
           return (
-            <button
-              key={action}
-              onClick={() => handleTap(action)}
-              className={`flex flex-col items-center gap-1 rounded-2xl bg-white p-3 shadow-md transition-transform active:scale-95 ${
-                disabled ? "opacity-30 grayscale" : "hover:shadow-lg"
-              }`}
-            >
-              <span className="text-2xl">{cfg.icon}</span>
-              <span className="text-[10px] font-semibold text-gray-500">{cfg.label}</span>
-            </button>
+            <div key={action} className="relative flex flex-col items-center">
+              {isRecommended && !disabled && (
+                <span className="absolute -top-2 -right-2 text-[11px] leading-none z-10">⭐</span>
+              )}
+              <button
+                onClick={() => handleTap(action)}
+                className={`flex flex-col items-center gap-1 rounded-2xl bg-white p-3 shadow-md transition-transform active:scale-95 ${
+                  disabled ? "opacity-30 grayscale" : "hover:shadow-lg"
+                } ${isRecommended && !disabled ? "ring-2 ring-yellow-300" : ""}`}
+              >
+                <span className="text-2xl">{cfg.icon}</span>
+                <span className="text-[10px] font-semibold text-gray-500">{cfg.label}</span>
+              </button>
+            </div>
           );
         })}
       </div>

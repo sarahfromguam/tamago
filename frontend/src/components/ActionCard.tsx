@@ -43,6 +43,13 @@ const ACTION_DEF: Record<ActionType, ActionDef> = {
     msgTemplate: (phone) =>
       `sms:${phone}?body=${encodeURIComponent("Hey! I'm sending some food your way 🍱 Hope it helps!")}`,
   },
+  gift: {
+    icon: "🎁",
+    label: "Send a Gift",
+    sublabel: "A little care package",
+    msgTemplate: (phone) =>
+      `sms:${phone}?body=${encodeURIComponent("Hey! Sending you something special 🎁 Thinking of you!")}`,
+  },
 };
 
 const SLEEP_BLOCKED: ActionType[] = ["call", "facetime"];

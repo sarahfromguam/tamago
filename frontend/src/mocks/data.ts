@@ -55,6 +55,24 @@ export const MOCK_FEED: FeedItem[] = [
     vitals: { steps: 820, resting_hr: 78, hrv: 28 },
     recommended_actions: ["call", "food", "text"],
   },
+  {
+    slug: "jake-sleeping",
+    name: "Jake",
+    phone: "+15555550202",
+    base: "okay",
+    is_sleeping: true,
+    supported: false,
+    support_count: 0,
+    dimensions: { sleep: "yellow", stress: "green", meds: "green" },
+    dimension_details: {
+      sleep:    { score: 65, label: "5.5h",       sublabel: "catching up",    history: [70, 58, 62, 55, 60, 63, 65] },
+      stress:   { score: 80, label: "HRV 55ms",   sublabel: "recovering",     history: [74, 76, 78, 80, 77, 79, 80] },
+      activity: { score: 68, label: "4,800 steps", sublabel: "moderate",       history: [72, 65, 70, 68, 60, 66, 68] },
+      meds:     { score: 100, label: "Taken",      sublabel: "on schedule",    history: [] },
+    },
+    vitals: { steps: 4800, resting_hr: 60, hrv: 55 },
+    recommended_actions: ["text", "coffee"],
+  },
 ];
 
 // Real Oura data — Sarah, April 18 2026

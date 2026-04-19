@@ -62,7 +62,7 @@ export interface UserOut {
   created_at: string;
 }
 
-export type ActionType = "text" | "call" | "facetime" | "coffee" | "food";
+export type ActionType = "text" | "call" | "facetime" | "coffee" | "food" | "gift";
 
 export interface SupportActionOut {
   id: string;
@@ -95,6 +95,20 @@ export interface ScheduledMedication {
   frequency: string;
   scheduled_times: string[];
   reminders_enabled: boolean;
+}
+
+export interface DimensionVisibility {
+  sleep: boolean;
+  stress: boolean;
+  meds: boolean;
+  activity: boolean;
+}
+
+export interface CircleMember {
+  name: string;
+  phone: string;
+  relationship: string;
+  tier: number;
 }
 
 export interface InviteOut {
