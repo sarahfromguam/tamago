@@ -97,12 +97,12 @@ export default function FriendDetail() {
 
   // Apply visibility filter
   const statRows = [
+    { key: "meds",     label: "Meds",     dimKey: "meds"     as keyof DimensionVisibility, dimState: dims.meds,   detail: details.meds     },
     { key: "sleep",    label: "Sleep",    dimKey: "sleep"    as keyof DimensionVisibility, dimState: dims.sleep,  detail: details.sleep    },
     { key: "stress",   label: "Stress",   dimKey: "stress"   as keyof DimensionVisibility, dimState: dims.stress, detail: details.stress   },
     { key: "activity", label: "Activity", dimKey: "activity" as keyof DimensionVisibility,
       dimState: (details.activity ? (details.activity.score >= 75 ? "green" : details.activity.score >= 50 ? "yellow" : "red") : "grey") as DimensionState,
       detail: details.activity },
-    { key: "meds",     label: "Meds",     dimKey: "meds"     as keyof DimensionVisibility, dimState: dims.meds,   detail: details.meds     },
   ].filter(({ dimKey }) => visibility[dimKey] !== false);
 
   // Overall state color for the name badge

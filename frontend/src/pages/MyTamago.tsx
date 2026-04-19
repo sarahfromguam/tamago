@@ -337,9 +337,9 @@ export default function MyTamago() {
   const details = state.dimension_details ?? {};
 
   const statRows = [
+    { key: "meds"   , label: "Meds",     dimKey: "meds"     as keyof DimensionVisibility, state: dims.meds,   detail: details.meds     },
     { key: "sleep"  , label: "Sleep",    dimKey: "sleep"    as keyof DimensionVisibility, state: dims.sleep,  detail: details.sleep    },
     { key: "stress" , label: "Stress",   dimKey: "stress"   as keyof DimensionVisibility, state: dims.stress, detail: details.stress   },
-    { key: "meds"   , label: "Meds",     dimKey: "meds"     as keyof DimensionVisibility, state: dims.meds,   detail: details.meds     },
     { key: "activity", label: "Activity", dimKey: "activity" as keyof DimensionVisibility, state: (details.activity?.score ?? 0) >= 75 ? "green" as const : (details.activity?.score ?? 0) >= 50 ? "yellow" as const : details.activity ? "red" as const : "grey" as const, detail: details.activity },
   ];
 

@@ -86,14 +86,14 @@ SEEDED_PATIENTS = [
         "slug": "mia-struggling",
         "name": "Mia",
         "phone": "+15555550101",
-        "dimensions": {"sleep": "red", "stress": "red", "meds": "yellow"},
+        "dimensions": {"sleep": "red", "stress": "yellow", "meds": "yellow"},
         "dimension_details": {
-            "sleep":    {"score": 44, "label": "3.9h",     "sublabel": "deep deficit",   "history": [72, 65, 58, 50, 44, 40, 44]},
-            "stress":   {"score": 51, "label": "HRV 28ms", "sublabel": "needs rest",     "history": [70, 62, 58, 53, 51, 49, 51]},
-            "activity": {"score": 30, "label": "820 steps", "sublabel": "very sedentary", "history": [55, 48, 40, 35, 32, 28, 30]},
-            "meds":     {"score": 60, "label": "Partial",  "sublabel": "missed evening", "history": []},
+            "sleep":    {"score": 44, "label": "3.9h",        "sublabel": "deep deficit",   "history": [72, 65, 58, 50, 44, 40, 44]},
+            "stress":   {"score": 62, "label": "HRV 42ms",    "sublabel": "some tension",   "history": [70, 65, 63, 60, 62, 61, 62]},
+            "activity": {"score": 55, "label": "2,800 steps", "sublabel": "light movement", "history": [55, 52, 58, 54, 56, 53, 55]},
+            "meds":     {"score": 60, "label": "Partial",     "sublabel": "missed evening", "history": []},
         },
-        "vitals": {"steps": 820, "resting_hr": 78, "hrv": 28},
+        "vitals": {"steps": 2800, "resting_hr": 72, "hrv": 42},
         "base": "fried",
         "is_sleeping": False,
         "supported": True,
@@ -124,6 +124,17 @@ SEEDED_PATIENTS = [
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _fetch_mia() -> dict:
+    """Build a FeedItem for Mia from seeded static health data + live Supabase meds."""
+    base = next(p for p in SEEDED_PATIENTS if p["slug"] == "mia-struggling")
+    meds_state, meds_detail = _compute_meds_from_supabase(DEMO_UID)
+    return {
+        **base,
+        "dimensions": {**base["dimensions"], "meds": meds_state},
+        "dimension_details": {**base["dimension_details"], "meds": meds_detail},
+    }
+
 
 async def _fetch_sarah() -> dict:
     """Build a live FeedItem for Sarah from real Oura data + Supabase meds."""
@@ -180,14 +191,17 @@ async def get_demo_feed():
             sarah = await _fetch_sarah()
         except Exception:
             pass
-    return ([sarah] if sarah else []) + SEEDED_PATIENTS
+    patients = [_fetch_mia() if p["slug"] == "mia-struggling" else p for p in SEEDED_PATIENTS]
+    return ([sarah] if sarah else []) + patients
 
 
 @router.get("/patient/{slug}", response_model=dict)
 async def get_demo_patient(slug: str):
     """Return a single patient by slug — Sarah is live, others are seeded."""
-    if slug in ("sarahs-egg", "user_mia"):
+    if slug == "sarahs-egg":
         return await get_demo_tamago()
+    if slug in ("user_mia", "mia-struggling"):
+        return _fetch_mia()
     patient = next((p for p in SEEDED_PATIENTS if p["slug"] == slug), None)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
