@@ -14,7 +14,7 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     name: str | None = None
-    oura_token: str | None = None
+    oura_token: str | None = None  # Oura OAuth access token
     omi_enabled: bool | None = None
 
 
@@ -23,6 +23,6 @@ class UserOut(BaseModel):
     phone: str
     name: str
     slug: str
-    oura_token: str | None = None
+    oura_connected: bool = False  # true if oura_token is set (don't expose raw token)
     omi_enabled: bool
     created_at: datetime

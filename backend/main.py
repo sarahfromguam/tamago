@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import users, invites, support, feed, webhooks
+from routers import users, invites, support, feed, webhooks, demo
 
 app = FastAPI(title="Tamago API", version="0.1.0")
 
@@ -18,6 +18,7 @@ app.include_router(invites.router)
 app.include_router(support.router)
 app.include_router(feed.router)
 app.include_router(webhooks.router)
+app.include_router(demo.router)
 
 
 @app.get("/health")

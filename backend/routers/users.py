@@ -4,6 +4,7 @@ from models.user import UserCreate, UserOut, UserUpdate
 from models.egg_state import EggState
 from services.supabase_client import supabase
 from services.health_compute import compute_tamago_state
+from services import oura
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -30,3 +31,10 @@ async def update_user(slug: str, body: UserUpdate):
 async def refresh_health_data(slug: str):
     """Force refresh from Oura API and return updated tamago state. Called on page load."""
     raise NotImplementedError
+
+
+@router.get("/{slug}/connect-oura")
+async def get_oura_connect_url(slug: str) -> dict:
+    """Return the Oura OAuth URL for the user. Frontend redirects the user there."""
+    url = oura.get_oura_oauth_url(state=slug)
+    return {"url": url}

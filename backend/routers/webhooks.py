@@ -3,9 +3,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 from services.health_compute import compute_tamago_state
-from services.oura import process_oura_webhook
 from services.claude_extractor import extract_medication
-from services.supabase_client import supabase
 
 router = APIRouter(prefix="/webhook", tags=["webhooks"])
 
