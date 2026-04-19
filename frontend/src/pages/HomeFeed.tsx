@@ -19,6 +19,31 @@ function extractSlug(input: string): string {
 }
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === "true";
+const DEMO_EGG_KEY = "tamago_demo_egg_base";
+
+/** Apply the persisted demo egg base to Mia's feed item so she stays in sync. */
+function applyDemoOverrides(items: FeedItem[]): FeedItem[] {
+  const saved = localStorage.getItem(DEMO_EGG_KEY) as import("../types").EggBase | null;
+  if (!saved) return items;
+  return items.map((item) => {
+    // Match both the user's own card (sarahs-egg) and Mia's card
+    if (item.slug === "sarahs-egg" || item.slug === "mia-struggling") {
+      const isOkay = saved === "okay";
+      return {
+        ...item,
+        base: saved,
+        dimensions: { ...item.dimensions, meds: isOkay ? "green" as const : "red" as const },
+        dimension_details: {
+          ...item.dimension_details,
+          meds: isOkay
+            ? { score: 100, label: "All taken", sublabel: "on schedule", history: [] }
+            : { score: 0, label: "0/5 taken", sublabel: "none taken", history: [] },
+        },
+      };
+    }
+    return item;
+  });
+}
 
 // Grass zone: 62%–82% of 340px scene = 211–279px from top = 61–129px from bottom = 18%–38%
 // All bottom values kept between 21% and 34% so eggs land clearly on grass.
@@ -148,9 +173,10 @@ function AddFriendModal({ onAdd, onClose }: { onAdd: (item: FeedItem) => void; o
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm"
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="w-full max-w-md rounded-t-3xl bg-[#fdf8f0] p-6 pb-10 shadow-2xl">
+      <div className="w-[90%] max-w-sm rounded-2xl bg-[#fdf8f0] p-6 shadow-2xl"
+        style={{ border: "3px solid #2c1a0e" }}>
         <h2 className="mb-1 font-pixel text-[9px]" style={{ color: "#2c1a0e" }}>ADD A FRIEND</h2>
         <p className="mb-4 font-pixel text-[6px]" style={{ color: "#9a8070" }}>
           PASTE A TAMAGO LINK OR ENTER A FRIEND'S ID
@@ -181,6 +207,23 @@ function AddFriendModal({ onAdd, onClose }: { onAdd: (item: FeedItem) => void; o
             {status === "loading" ? "FINDING…" : "ADD FRIEND"}
           </button>
         </div>
+
+        {/* Divider */}
+        <div className="my-4 flex items-center gap-2">
+          <div className="flex-1 border-t-2 border-dashed" style={{ borderColor: "#d4c4b0" }} />
+          <span className="font-pixel text-[6px]" style={{ color: "#9a8070" }}>OR</span>
+          <div className="flex-1 border-t-2 border-dashed" style={{ borderColor: "#d4c4b0" }} />
+        </div>
+
+        {/* Scan QR option */}
+        <button
+          onClick={() => {/* TODO: QR scanner */}}
+          className="w-full flex items-center justify-center gap-2 border-2 border-[#2c1a0e] py-2.5 font-pixel text-[7px] transition-transform active:scale-95"
+          style={{ color: "#2c1a0e", background: "#fffef5", boxShadow: "2px 2px 0 0 #2c1a0e" }}
+        >
+          <span style={{ fontSize: "14px", lineHeight: 1 }}>📷</span>
+          SCAN QR CODE
+        </button>
       </div>
     </div>
   );
@@ -194,7 +237,7 @@ export default function HomeFeed() {
   const [showAddFriend, setShowAddFriend] = useState(false);
 
   useEffect(() => {
-    if (USE_MOCKS) { setFeed(MOCK_FEED); setLoading(false); return; }
+    if (USE_MOCKS) { setFeed(applyDemoOverrides(MOCK_FEED)); setLoading(false); return; }
     if (!phone) { setLoading(false); return; }
 
     // Load main feed + any extra manually added friends
@@ -207,7 +250,7 @@ export default function HomeFeed() {
         const extraItems: FeedItem[] = extras
           .filter((r): r is PromiseFulfilledResult<FeedItem> => r.status === "fulfilled")
           .map((r) => ({ ...r.value, slug: r.value.slug ?? "", name: r.value.name ?? "", phone: r.value.phone ?? "" }));
-        setFeed([...mainFeed, ...extraItems]);
+        setFeed(applyDemoOverrides([...mainFeed, ...extraItems]));
       })
       .catch(() => setFeed([]))
       .finally(() => setLoading(false));
@@ -294,21 +337,6 @@ export default function HomeFeed() {
           ))}
         </div>
       </div>
-      {/* Add friend button – full width below title */}
-      <button
-        onClick={() => setShowAddFriend(true)}
-        className="mb-3 flex items-center justify-center gap-1.5 px-4 py-1.5 font-pixel text-[6px] transition-transform active:scale-90 hover:scale-105"
-        style={{
-          border: "2px solid #2c1a0e",
-          background: "#c4a882",
-          color: "#fff",
-          boxShadow: "2px 2px 0 0 #2c1a0e",
-        }}
-      >
-        <span style={{ fontSize: "10px", lineHeight: 1 }}>+</span>
-        ADD FRIEND
-      </button>
-
       {/* ── Pixel frame wrapper ───────────────────────────────────────────────
           Outer div = dark wood border (shows as 4px inset via padding).
           clip-path gives the chamfered pixel-art corner instead of smooth rounding.
@@ -336,6 +364,23 @@ export default function HomeFeed() {
               "#c89050 82%)",                 // dirt
           }}
         >
+          {/* Add friend button – top-right in sky */}
+          <button
+            onClick={() => setShowAddFriend(true)}
+            className="absolute z-10 flex items-center gap-1 px-3 py-1 font-pixel text-[6px] transition-transform active:scale-90 hover:scale-105"
+            style={{
+              top: "10px",
+              right: "12px",
+              border: "2px solid #2c1a0e",
+              background: "#c4a882",
+              color: "#fff",
+              boxShadow: "2px 2px 0 0 #2c1a0e",
+            }}
+          >
+            <span style={{ fontSize: "10px", lineHeight: 1 }}>+</span>
+            ADD FRIEND
+          </button>
+
           {/* Sky clouds */}
           <div className="absolute" style={{ left: "3%",  top: "6%"  }}><PixelCloud size={1.1} /></div>
           <div className="absolute" style={{ right: "5%", top: "4%"  }}><PixelCloud size={1.3} /></div>

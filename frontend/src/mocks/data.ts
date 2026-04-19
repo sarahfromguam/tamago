@@ -39,7 +39,7 @@ export const MOCK_FEED: FeedItem[] = [
   },
   {
     slug: "mia-struggling",
-    name: "Mia",
+    name: "Maya",
     phone: "+15555550101",
     base: "fried",
     is_sleeping: false,

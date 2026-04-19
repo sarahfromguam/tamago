@@ -136,6 +136,20 @@ export const api = {
     );
   },
 
+  getSupportFriend(uid: string) {
+    return request<{ status: string; friend?: string }>(
+      `/api/get-support?uid=${uid}&target=friend`,
+      { method: "POST" }
+    );
+  },
+
+  getSupportCaregiver(uid: string) {
+    return request<{ status: string; caregiver?: string }>(
+      `/api/get-support?uid=${uid}&target=caregiver`,
+      { method: "POST" }
+    );
+  },
+
   getOmiConversations(limit = 10) {
     return request<OmiConversation[]>(`/api/demo/omi-conversations?limit=${limit}`);
   },

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import type { OmiConversation, OmiPipelineStep, OmiRunResult } from "../types";
+import type { EggBase, OmiConversation, OmiPipelineStep, OmiRunResult } from "../types";
 
 // ── Shared terminal styles ───────────────────────────────
 const T = {
@@ -148,158 +148,121 @@ function ConversationCard({ conv, live }: { conv: OmiConversation; live?: boolea
   );
 }
 
-// ── Demo inject ──────────────────────────────────────────
+const UID = "user_mia";
+const DEMO_EGG_KEY = "tamago_demo_egg_base";
+const DEMO_TRANSITION_KEY = "tamago_demo_transition";
 
-const DEMO_SCENARIOS = [
-  {
-    label: "took medication",
-    color: T.green,
-    segments: [
-      { text: "Hey, just a heads up I took my Tylenol about ten minutes ago.", speaker: "SPEAKER_0", is_user: true },
-      { text: "Good, how are you feeling?", speaker: "SPEAKER_1", is_user: false },
-      { text: "A bit better, the headache is starting to go away.", speaker: "SPEAKER_0", is_user: true },
-    ],
-  },
-  {
-    label: "distress signal",
-    color: T.red,
-    segments: [
-      { text: "I have such a terrible headache right now, it's been throbbing all morning.", speaker: "SPEAKER_0", is_user: true },
-      { text: "Did you take anything for it?", speaker: "SPEAKER_1", is_user: false },
-      { text: "Not yet, I keep forgetting and I feel so exhausted.", speaker: "SPEAKER_0", is_user: true },
-    ],
-  },
-];
+const demoChannel = new BroadcastChannel("tamago_demo");
 
-function DemoInject({ onSent }: { onSent: () => void }) {
-  const [sending, setSending] = useState<string | null>(null);
-  const [visibleSteps, setVisibleSteps] = useState<OmiPipelineStep[]>([]);
-  const [activeScenario, setActiveScenario] = useState<string | null>(null);
+function DemoControls() {
+  const [eggBase, setEggBase] = useState<EggBase>(() =>
+    (localStorage.getItem(DEMO_EGG_KEY) as EggBase) || "fried"
+  );
+  const [friendStatus, setFriendStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [caregiverStatus, setCaregiverStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
-  async function inject(scenario: typeof DEMO_SCENARIOS[0]) {
-    setSending(scenario.label);
-    setVisibleSteps([]);
-    setActiveScenario(scenario.label);
+  const handleMedsTaken = async () => {
+    if (eggBase !== "fried") return;
+    await api.takeMeds().catch(() => {});
+    localStorage.setItem(DEMO_EGG_KEY, "okay");
+    localStorage.setItem(DEMO_TRANSITION_KEY, "okay");
+    demoChannel.postMessage({ type: "transition", base: "okay" });
+    setEggBase("okay");
+  };
 
-    const id = `demo-${Date.now()}`;
-    const transcript = scenario.segments.map(s => s.text).join(" ");
+  const handleReset = async () => {
+    await api.resetSarah().catch(() => {});
+    localStorage.setItem(DEMO_EGG_KEY, "fried");
+    localStorage.removeItem(DEMO_TRANSITION_KEY);
+    demoChannel.postMessage({ type: "reset", base: "fried" });
+    setEggBase("fried");
+  };
 
-    // Fire webhook and fetch steps in parallel
-    const [, result] = await Promise.all([
-      fetch(`/webhook/omi?uid=user_mia`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, transcript_segments: scenario.segments, discarded: false }),
-      }),
-      api.runOmiPipeline(transcript, id),
-    ]);
-
-    setSending(null);
-    onSent();
-
-    // Reveal steps one by one
-    for (let i = 0; i < result.steps.length; i++) {
-      await new Promise(r => setTimeout(r, 500));
-      setVisibleSteps(result.steps.slice(0, i + 1));
+  const handleAlertFriend = async () => {
+    setFriendStatus("sending");
+    try {
+      await api.getSupportFriend(UID);
+      setFriendStatus("sent");
+    } catch {
+      setFriendStatus("error");
+    } finally {
+      setTimeout(() => setFriendStatus("idle"), 4000);
     }
-  }
+  };
+
+  const handleAlertCaregiver = async () => {
+    setCaregiverStatus("sending");
+    try {
+      await api.getSupportCaregiver(UID);
+      setCaregiverStatus("sent");
+    } catch {
+      setCaregiverStatus("error");
+    } finally {
+      setTimeout(() => setCaregiverStatus("idle"), 4000);
+    }
+  };
+
+  const btnStyle = (bg: string) => ({
+    background: bg,
+    color: "#fff",
+    boxShadow: "2px 2px 0 0 #2c1a0e",
+  });
+
+  const statusColor = (s: "idle" | "sending" | "sent" | "error") =>
+    s === "sent" ? "#22c55e" : s === "error" ? "#ef4444" : "#c4a882";
+
+  const statusLabel = (s: "idle" | "sending" | "sent" | "error", label: string) =>
+    s === "sending" ? "SENDING..." : s === "sent" ? "✓ SENT!" : s === "error" ? "✗ FAILED" : label;
 
   return (
-    <div className="rounded p-3 mb-6" style={{ background: T.card, border: `1px solid ${T.border}` }}>
-      <p className="font-mono text-sm mb-3" style={{ color: T.muted }}>// inject demo conversation</p>
-      <div className="flex gap-2 flex-wrap mb-3">
-        {DEMO_SCENARIOS.map((s) => (
+    <div className="pixel-box p-3">
+      <h2 className="font-pixel text-[9px] tracking-widest mb-3" style={{ color: "#2c1a0e" }}>
+        DEMO CONTROLS
+      </h2>
+
+      {/* Meds / Reset row */}
+      <div className="flex gap-2 mb-2">
+        {eggBase === "fried" ? (
           <button
-            key={s.label}
-            onClick={() => inject(s)}
-            disabled={!!sending}
-            className="font-mono text-sm px-3 py-1.5 rounded hover:opacity-80 disabled:opacity-40 transition-opacity"
-            style={{ background: "#21262d", color: s.color, border: `1px solid ${s.color}40` }}
+            onClick={handleMedsTaken}
+            className="flex-1 border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[6px] transition-transform active:scale-95"
+            style={btnStyle("#7c5cbf")}
           >
-            {sending === s.label ? "sending…" : `▶ ${s.label}`}
+            💊 MEDS TAKEN
           </button>
-        ))}
+        ) : (
+          <button
+            onClick={handleReset}
+            className="flex-1 border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[6px] transition-transform active:scale-95"
+            style={btnStyle("#9a8070")}
+          >
+            ↺ RESET TO FRIED
+          </button>
+        )}
       </div>
 
-      {/* Processing trace */}
-      {activeScenario && (
-        <div className="border-t pt-3 mt-1" style={{ borderColor: T.border }}>
-          <p className="font-mono text-sm mb-2" style={{ color: T.muted }}>
-            // processing: {activeScenario}
-          </p>
-          <div className="flex flex-col gap-1.5 border-l-2 pl-3" style={{ borderColor: T.border }}>
-            {visibleSteps.map((s, i) => (
-              <div
-                key={i}
-                className="flex items-baseline gap-2"
-                style={{ animation: "fadeInUp 0.2s ease-out both" }}
-              >
-                <span className="font-mono text-sm w-3 flex-shrink-0" style={{ color: T.muted }}>
-                  {STEP_ICON[s.step] ?? "·"}
-                </span>
-                <span className="font-mono text-sm" style={{ color: T.text }}>{s.label}</span>
-                {s.result && (
-                  <span className="font-mono text-sm" style={{ color: RESULT_COLOR[s.result] ?? T.muted }}>
-                    [{s.result}]
-                  </span>
-                )}
-                {s.detail && (
-                  <span className="font-mono text-sm truncate" style={{ color: T.muted }}>{s.detail}</span>
-                )}
-              </div>
-            ))}
-            {sending && (
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-sm" style={{ color: T.muted }}>·</span>
-                <span className="font-mono text-sm" style={{ color: T.muted }}>
-                  <span style={{ animation: "pixelPulse 1s step-end infinite", display: "inline-block" }}>▋</span>
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Support buttons row */}
+      <div className="flex gap-2">
+        <button
+          onClick={handleAlertFriend}
+          disabled={friendStatus === "sending"}
+          className="flex-1 border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[6px] transition-transform active:scale-95 disabled:opacity-60"
+          style={btnStyle(statusColor(friendStatus))}
+        >
+          {statusLabel(friendStatus, "💬 ALERT FRIEND")}
+        </button>
+        <button
+          onClick={handleAlertCaregiver}
+          disabled={caregiverStatus === "sending"}
+          className="flex-1 border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[6px] transition-transform active:scale-95 disabled:opacity-60"
+          style={btnStyle(statusColor(caregiverStatus))}
+        >
+          {statusLabel(caregiverStatus, "🆘 ALERT CAREGIVER")}
+        </button>
+      </div>
     </div>
   );
 }
-
-// ── Live entry ───────────────────────────────────────────
-
-function LiveEntry({ conv }: { conv: OmiConversation }) {
-  const cfg = PATH_CONFIG[conv.path] ?? PATH_CONFIG.none;
-  const receivedAt = conv.received_at
-    ? new Date(conv.received_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-    : "—";
-
-  return (
-    <div
-      className="rounded p-3 font-mono"
-      style={{ background: T.card, border: `1px solid ${T.green}30`, animation: "fadeInUp 0.2s ease-out both" }}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: T.green }} />
-          <span className="text-sm" style={{ color: T.muted }}>{receivedAt}</span>
-        </div>
-        <span className="text-sm font-semibold" style={{ color: cfg.color }}>{cfg.label}</span>
-      </div>
-
-      {conv.match && (
-        <p className="text-sm mb-1.5" style={{ color: T.green }}>
-          + {conv.match.medication}{conv.match.quote ? ` · "${conv.match.quote}"` : ""}
-        </p>
-      )}
-
-      {conv.transcript && (
-        <p className="text-sm leading-relaxed" style={{ color: T.muted }}>
-          {conv.transcript.length > 160 ? conv.transcript.slice(0, 160) + "…" : conv.transcript}
-        </p>
-      )}
-    </div>
-  );
-}
-
-// ── Page ─────────────────────────────────────────────────
 
 export default function DemoConsole() {
   const [conversations, setConversations] = useState<OmiConversation[]>([]);
@@ -322,19 +285,14 @@ export default function DemoConsole() {
   }, []);
 
   return (
-    <div
-      className="min-h-screen -mx-4 -mt-4 px-4 pt-4 pb-10"
-      style={{ background: T.bg }}
-    >
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-mono text-sm" style={{ color: T.green }}>omi</span>
-          <span className="font-mono text-sm" style={{ color: T.muted }}>/</span>
-          <span className="font-mono text-sm" style={{ color: T.text }}>pipeline</span>
-        </div>
-        <h1 className="font-mono text-2xl font-bold" style={{ color: T.text }}>
-          Pipeline Console
+    <div className="flex flex-col gap-4">
+      {/* Demo controls */}
+      <DemoControls />
+
+      {/* Pipeline diagram */}
+      <div className="pixel-box p-3">
+        <h1 className="font-pixel text-[9px] tracking-widest mb-3" style={{ color: "#2c1a0e" }}>
+          OMI PIPELINE
         </h1>
         <p className="font-mono text-sm mt-1" style={{ color: T.muted }}>
           real-time conversation processing

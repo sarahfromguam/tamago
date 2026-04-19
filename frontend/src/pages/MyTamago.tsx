@@ -70,7 +70,7 @@ interface Supporter {
 const SEED_SUPPORTERS: Supporter[] = [
   { name: "Emma",   emoji: "🌸", color: "#e8a0bf", actions: ["☕", "💬", "📞"], role: "caregiver" },
   { name: "Jake",   emoji: "🌿", color: "#7cb894", actions: ["🍕", "💬"],       role: "friend"    },
-  { name: "Mia",    emoji: "🌙", color: "#9b8ec4", actions: ["📹", "☕", "💬"], role: "caregiver" },
+  { name: "Maya",   emoji: "🌙", color: "#9b8ec4", actions: ["📹", "☕", "💬"], role: "caregiver" },
   { name: "Liam",   emoji: "🔥", color: "#d4845a", actions: ["🍕", "🎁"],       role: "friend"    },
   { name: "Sophie", emoji: "✨", color: "#c9a84c", actions: ["💬"],             role: "friend"    },
 ];
@@ -240,9 +240,10 @@ function Onboarding({ onCreated }: { onCreated: (slug: string) => void }) {
 }
 
 // ── Main ────────────────────────────────────────────────────
-const UID = "user_mia";
-
 const DEFAULT_VIS: DimensionVisibility = { sleep: true, stress: true, meds: true, activity: true };
+
+const DEMO_EGG_KEY = "tamago_demo_egg_base";
+const DEMO_TRANSITION_KEY = "tamago_demo_transition";
 
 export default function MyTamago() {
   const { slug, setSlug } = useMySlug();
@@ -251,22 +252,41 @@ export default function MyTamago() {
   const [support, setSupport] = useState<SupportActionOut[]>([]);
   const [invitePhone, setInvitePhone] = useState("");
   const [inviteSent, setInviteSent] = useState(false);
-  const [supporting, setSupporting] = useState(false);
-  const [supportStatus, setSupportStatus] = useState<"idle" | "sent" | "error">("idle");
   const [loading, setLoading] = useState(true);
   const [transitionTo, setTransitionTo] = useState<import("../types").EggBase | null>(null);
 
+  // Load initial state
   useEffect(() => {
     if (!slug) { setLoading(false); return; }
+    const pendingTransition = localStorage.getItem(DEMO_TRANSITION_KEY) as import("../types").EggBase | null;
+    const applyDemoOverride = (s: EggState): EggState => {
+      if (pendingTransition) return s;
+      const saved = localStorage.getItem(DEMO_EGG_KEY) as import("../types").EggBase | null;
+      if (!saved) return s;
+      if (saved === "okay" && s.base === "fried") {
+        return { ...s, base: "okay", dimensions: { ...s.dimensions, meds: "green" }, dimension_details: { ...s.dimension_details, meds: { score: 100, label: "All taken", sublabel: "on schedule", history: [] } } };
+      }
+      if (saved === "fried" && s.base === "okay") {
+        return { ...s, base: "fried", dimensions: { ...s.dimensions, meds: "red" }, dimension_details: { ...s.dimension_details, meds: { score: 0, label: "0/5 taken", sublabel: "none taken", history: [] } } };
+      }
+      return { ...s, base: saved };
+    };
     if (USE_MOCKS) {
-      setState(MOCK_TAMAGO_STATE);
+      setState(applyDemoOverride(MOCK_TAMAGO_STATE));
       setSupport(MOCK_SUPPORT_ACTIONS);
       setLoading(false);
+      if (pendingTransition) setTimeout(() => setTransitionTo(pendingTransition), 300);
       return;
     }
     api.getTamagoState(slug)
-      .then(setState)
-      .catch(() => setState(MOCK_TAMAGO_STATE))
+      .then((s) => {
+        setState(applyDemoOverride(s));
+        if (pendingTransition) setTimeout(() => setTransitionTo(pendingTransition), 300);
+      })
+      .catch(() => {
+        setState(applyDemoOverride(MOCK_TAMAGO_STATE));
+        if (pendingTransition) setTimeout(() => setTransitionTo(pendingTransition), 300);
+      })
       .finally(() => setLoading(false));
     api.getTodaySupport(slug).then(setSupport).catch(() => setSupport([]));
     api.getVisibility(slug).then(setVisibilityState).catch(() => {});
@@ -276,6 +296,20 @@ export default function MyTamago() {
     }, 8000);
     return () => clearInterval(poll);
   }, [slug]);
+
+  // Listen for real-time demo events from the Omi Demo page
+  useEffect(() => {
+    const ch = new BroadcastChannel("tamago_demo");
+    ch.onmessage = (e) => {
+      if (e.data?.type === "transition") {
+        setTransitionTo(e.data.base);
+      } else if (e.data?.type === "reset") {
+        setState((prev) => prev ? { ...prev, base: "fried", dimensions: { ...prev.dimensions, meds: "red" }, dimension_details: { ...prev.dimension_details, meds: { score: 0, label: "0/5 taken", sublabel: "none taken", history: [] } } } : prev);
+        setTransitionTo(null);
+      }
+    };
+    return () => ch.close();
+  }, []);
 
   const toggleDimension = (key: keyof DimensionVisibility) => {
     if (!slug) return;
@@ -310,19 +344,6 @@ export default function MyTamago() {
     setTimeout(() => setInviteSent(false), 3000);
   };
 
-  const handleGetSupport = async () => {
-    setSupporting(true);
-    setSupportStatus("idle");
-    try {
-      await api.getSupport(UID);
-      setSupportStatus("sent");
-    } catch {
-      setSupportStatus("error");
-    } finally {
-      setSupporting(false);
-      setTimeout(() => setSupportStatus("idle"), 4000);
-    }
-  };
 
   const handleRefresh = async () => {
     if (USE_MOCKS) return;
@@ -359,7 +380,7 @@ export default function MyTamago() {
           size="lg"
           transitionTo={transitionTo}
           onTransitionEnd={() => {
-            // Update the actual state after animation completes
+            localStorage.removeItem(DEMO_TRANSITION_KEY);
             setState((prev) => prev ? { ...prev, base: transitionTo!, dimensions: { ...prev.dimensions, meds: "green" }, dimension_details: { ...prev.dimension_details, meds: { score: 100, label: "All taken", sublabel: "on schedule", history: [] } } } : prev);
             setTransitionTo(null);
           }}
@@ -369,41 +390,6 @@ export default function MyTamago() {
             ZZZ
           </span>
         )}
-      </div>
-
-      {/* Demo: simulate medication taken */}
-      {state.base === "fried" && !transitionTo && (
-        <button
-          onClick={async () => {
-            await api.takeMeds().catch(() => {});
-            setTransitionTo("okay");
-          }}
-          className="border-2 border-[#2c1a0e] px-4 py-1.5 font-pixel text-[6px] transition-transform active:scale-95"
-          style={{
-            background: "#7c5cbf",
-            color: "#fff",
-            boxShadow: "2px 2px 0 0 #2c1a0e",
-            opacity: 0.7,
-          }}
-        >
-          DEMO: MEDS TAKEN
-        </button>
-      )}
-
-      {/* ── Get Support button ── */}
-      <div className="flex w-full justify-end">
-        <button
-          onClick={handleGetSupport}
-          disabled={supporting}
-          className="border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[6px] transition-transform active:scale-95 disabled:opacity-60"
-          style={{
-            backgroundColor: supportStatus === "sent" ? "#22c55e" : supportStatus === "error" ? "#ef4444" : "#c4a882",
-            color: "#fff",
-            boxShadow: "2px 2px 0 0 #2c1a0e",
-          }}
-        >
-          {supporting ? "SENDING..." : supportStatus === "sent" ? "✓ SENT!" : supportStatus === "error" ? "✗ FAILED" : "🆘 GET SUPPORT"}
-        </button>
       </div>
 
       {/* Visibility hint */}

@@ -27,8 +27,8 @@ def seed():
     # User
     db.upsert_user({
         "id": UID,
-        "name": "Mia's Egg",
-        "email": "mia@example.com",
+        "name": "Maya's Egg",
+        "email": "maya@example.com",
         "phone": "+15550001234",
     })
     print(f"✓ user {UID}")
@@ -227,7 +227,7 @@ def seed():
         })
     print(f"✓ 7 health snapshots")
 
-    print("\nDone! Seeded demo data for user_mia.")
+    print("\nDone! Seeded demo data for user_mia (Maya).")
 
 
 if __name__ == "__main__":
