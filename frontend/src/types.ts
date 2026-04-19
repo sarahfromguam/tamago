@@ -109,6 +109,7 @@ export interface CircleMember {
   phone: string;
   relationship: string;
   tier: number;
+  role?: "caregiver" | "friend";
 }
 
 export interface InviteOut {

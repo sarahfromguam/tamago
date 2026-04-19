@@ -59,6 +59,68 @@ function CircleSection({ slug }: { slug: string }) {
   );
 }
 
+// ── Supporters ─────────────────────────────────────────────
+interface Supporter {
+  name: string;
+  emoji: string;
+  color: string;
+  actions: string[];
+  role: "caregiver" | "friend";
+}
+
+const SEED_SUPPORTERS: Supporter[] = [
+  { name: "Emma",   emoji: "🌸", color: "#e8a0bf", actions: ["☕", "💬", "📞"], role: "caregiver" },
+  { name: "Jake",   emoji: "🌿", color: "#7cb894", actions: ["🍕", "💬"],       role: "friend"    },
+  { name: "Mia",    emoji: "🌙", color: "#9b8ec4", actions: ["📹", "☕", "💬"], role: "caregiver" },
+  { name: "Liam",   emoji: "🔥", color: "#d4845a", actions: ["🍕", "🎁"],       role: "friend"    },
+  { name: "Sophie", emoji: "✨", color: "#c9a84c", actions: ["💬"],             role: "friend"    },
+];
+
+function SupportersSection() {
+  return (
+    <div className="pixel-box w-full p-4">
+      <h3 className="mb-3 font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>
+        💛 MY SUPPORTERS
+      </h3>
+      <div className="flex flex-col gap-2.5">
+        {SEED_SUPPORTERS.map((s) => (
+          <div key={s.name} className="flex items-center gap-3">
+            <div
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-base"
+              style={{ backgroundColor: s.color + "30", border: `2px solid ${s.color}` }}
+            >
+              {s.emoji}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>{s.name}</p>
+              <div className="flex items-center gap-1 mt-0.5">
+                {s.actions.map((a, i) => (
+                  <span key={i} className="text-xs">{a}</span>
+                ))}
+              </div>
+            </div>
+            <span
+              className="font-pixel text-[5px] px-1.5 py-0.5"
+              style={s.role === "caregiver"
+                ? { color: "#fff", backgroundColor: "#c9856a", border: "1px solid #a06840" }
+                : { color: "#9a8070", backgroundColor: "#9a807018", border: "1px solid #9a807040" }
+              }
+            >
+              {s.role === "caregiver" ? "CAREGIVER" : "FRIEND"}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-center font-pixel text-[5px]" style={{ color: "#b8a898" }}>
+        {SEED_SUPPORTERS.length} PEOPLE SUPPORTING YOU
+      </p>
+      <p className="mt-1 text-center font-pixel text-[4.5px]" style={{ color: "#c9856a" }}>
+        CAREGIVERS GET TEXTED WHEN THINGS ARE DIRE
+      </p>
+    </div>
+  );
+}
+
 // ── QR Share ────────────────────────────────────────────────
 function QRShare({ slug }: { slug: string }) {
   const [open, setOpen] = useState(false);
@@ -315,6 +377,9 @@ export default function MyTamago() {
         style={{ color: "#6b4c35" }}>
         ↻ REFRESH DATA
       </button>
+
+      {/* Supporters */}
+      <SupportersSection />
 
       {/* QR share */}
       <QRShare slug={slug} />

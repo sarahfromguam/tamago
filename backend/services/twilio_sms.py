@@ -26,3 +26,20 @@ async def send_invite_sms(to_phone: str, invite_url: str, tamago_name: str) -> N
         from_=TWILIO_FROM,
         to=to_phone,
     )
+
+
+async def send_dire_alert_sms(to_phone: str, tamago_name: str, reason: str) -> None:
+    """Send an urgent SMS to a primary caregiver when a tamago is in critical condition."""
+    if not client:
+        raise RuntimeError("Twilio credentials not configured")
+
+    body = (
+        f"URGENT — {tamago_name}'s Tamago is in critical condition: {reason}. "
+        f"Please check in on them as soon as possible."
+    )
+
+    client.messages.create(
+        body=body,
+        from_=TWILIO_FROM,
+        to=to_phone,
+    )

@@ -102,6 +102,13 @@ export const api = {
     return request<CircleMember[]>(`/api/demo/circle/${slug}`);
   },
 
+  direAlert(slug: string) {
+    return request<{ sent: boolean; message: string; recipients: string[]; phones: string[]; sent_at: string }>(
+      `/api/demo/dire-alert/${slug}`,
+      { method: "POST" },
+    );
+  },
+
   babyBreak(message?: string) {
     return request<{ sent: boolean; message: string; recipients: string[]; sent_at: string }>(
       "/api/demo/baby-break",

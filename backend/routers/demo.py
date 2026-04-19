@@ -28,10 +28,10 @@ _visibility: dict[str, dict] = {}
 
 # Seeded support circle for Sarah
 _SARAH_CIRCLE = [
-    {"name": "Alex",  "phone": "+15551111111", "relationship": "Partner",   "tier": 1},
-    {"name": "Mom",   "phone": "+15552222222", "relationship": "Mother",    "tier": 1},
-    {"name": "Jenna", "phone": "+15553333333", "relationship": "Best friend","tier": 2},
-    {"name": "Dr. Kim","phone": "+15554444444","relationship": "Therapist", "tier": 2},
+    {"name": "Alex",   "phone": "+15551111111", "relationship": "Partner",    "tier": 1, "role": "caregiver"},
+    {"name": "Mom",    "phone": "+15552222222", "relationship": "Mother",     "tier": 1, "role": "caregiver"},
+    {"name": "Jenna",  "phone": "+15553333333", "relationship": "Best friend","tier": 2, "role": "friend"},
+    {"name": "Dr. Kim","phone": "+15554444444", "relationship": "Therapist",  "tier": 2, "role": "friend"},
 ]
 
 
@@ -181,6 +181,44 @@ async def request_baby_break(body: BabyBreakRequest | None = None):
         "sent": True,
         "message": msg,
         "recipients": ["Partner (Tier 1)", "Mom (Tier 1)"],
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@router.post("/dire-alert/{slug}")
+async def send_dire_alert(slug: str):
+    """Alert primary caregivers when a tamago is in critical condition.
+
+    Triggered when someone hasn't taken their medication at all or has
+    multiple red dimensions (\"fried\" state).  Only caregivers — not
+    regular friends — receive the SMS.
+
+    In production: fire Twilio SMS via send_dire_alert_sms to each caregiver.
+    """
+    circle = _SARAH_CIRCLE if slug == "sarahs-egg" else [
+        {"name": "Friend", "phone": "+15550000000", "relationship": "Friend", "tier": 1, "role": "caregiver"},
+    ]
+    caregivers = [m for m in circle if m.get("role") == "caregiver"]
+    if not caregivers:
+        raise HTTPException(status_code=404, detail="No caregivers found for this user")
+
+    # Look up the patient name
+    patient_name = "Sarah" if slug == "sarahs-egg" else slug
+    for p in SEEDED_PATIENTS:
+        if p["slug"] == slug:
+            patient_name = p["name"]
+            break
+
+    msg = (
+        f"{patient_name}'s Tamago is in critical condition — "
+        f"they haven't taken their medication. Please check in on them."
+    )
+
+    return {
+        "sent": True,
+        "message": msg,
+        "recipients": [f"{c['name']} ({c['relationship']})" for c in caregivers],
+        "phones": [c["phone"] for c in caregivers],
         "sent_at": datetime.now(timezone.utc).isoformat(),
     }
 
