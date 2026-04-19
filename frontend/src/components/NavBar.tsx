@@ -67,6 +67,15 @@ export default function NavBar() {
                 <img src="/eggs/joyful.png" alt="" className="h-4 w-4 object-contain" />
                 <span>My Tamago</span>
               </NavLink>
+              <div className="mx-3 h-px" style={{ background: "rgba(139,106,74,0.15)" }} />
+              <NavLink
+                to="/demo"
+                onClick={() => setOpen(false)}
+                className={({ isActive }) => `${itemBase} ${isActive ? active : inactive}`}
+              >
+                <span className="text-sm">🎙️</span>
+                <span>Omi Demo</span>
+              </NavLink>
             </>
           )}
         </div>

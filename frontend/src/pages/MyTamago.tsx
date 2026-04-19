@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
 import type {
   CircleMember,
   DimensionVisibility,
   EggState,
-  MedicationLog,
-  ScheduledMedication,
   SupportActionOut,
 } from "../types";
 import { usePhone } from "../hooks/usePhone";
@@ -243,14 +240,7 @@ function Onboarding({ onCreated }: { onCreated: (slug: string) => void }) {
 }
 
 // ── Main ────────────────────────────────────────────────────
-const _d = new Date();
-const TODAY = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, "0")}-${String(_d.getDate()).padStart(2, "0")}`;
 const UID = "user_mia";
-
-function formatTime(iso: string | null) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
-}
 
 const DEFAULT_VIS: DimensionVisibility = { sleep: true, stress: true, meds: true, activity: true };
 
@@ -259,8 +249,6 @@ export default function MyTamago() {
   const [state, setState] = useState<EggState | null>(null);
   const [visibility, setVisibilityState] = useState<DimensionVisibility>(DEFAULT_VIS);
   const [support, setSupport] = useState<SupportActionOut[]>([]);
-  const [schedule, setSchedule] = useState<ScheduledMedication[]>([]);
-  const [todayLogs, setTodayLogs] = useState<MedicationLog[]>([]);
   const [invitePhone, setInvitePhone] = useState("");
   const [inviteSent, setInviteSent] = useState(false);
   const [supporting, setSupporting] = useState(false);
@@ -281,25 +269,6 @@ export default function MyTamago() {
       .finally(() => setLoading(false));
     api.getTodaySupport(slug).then(setSupport).catch(() => setSupport([]));
     api.getVisibility(slug).then(setVisibilityState).catch(() => {});
-    api.getSchedule(UID).then(setSchedule).catch(() => {});
-    api.getLogs(UID, TODAY).then(setTodayLogs).catch(() => {});
-
-    // Realtime — auto-update when a new medication log is inserted
-    const channel = supabase
-      .channel("med-logs-live")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "medication_logs", filter: `uid=eq.${UID}` },
-        (payload) => {
-          const newLog = payload.new as MedicationLog;
-          if (newLog.date === TODAY) {
-            setTodayLogs((prev) => [...prev, newLog]);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
   }, [slug]);
 
   const toggleDimension = (key: keyof DimensionVisibility) => {
@@ -409,16 +378,30 @@ export default function MyTamago() {
       {/* ── Pixel stat bars ── */}
       <div className="w-full space-y-2 mt-1">
         {statRows.map(({ key, label, dimKey, state: dimState, detail }, i) => (
-          <PixelHPBar
-            key={key}
-            statKey={key}
-            label={label}
-            state={dimState}
-            detail={detail}
-            animDelay={i * 80}
-            visible={visibility[dimKey]}
-            onToggle={() => toggleDimension(dimKey)}
-          />
+          key === "meds" ? (
+            <Link key={key} to="/meds" className="block">
+              <PixelHPBar
+                statKey={key}
+                label={label}
+                state={dimState}
+                detail={detail}
+                animDelay={i * 80}
+                visible={visibility[dimKey]}
+                onToggle={() => toggleDimension(dimKey)}
+              />
+            </Link>
+          ) : (
+            <PixelHPBar
+              key={key}
+              statKey={key}
+              label={label}
+              state={dimState}
+              detail={detail}
+              animDelay={i * 80}
+              visible={visibility[dimKey]}
+              onToggle={() => toggleDimension(dimKey)}
+            />
+          )
         ))}
       </div>
 
@@ -461,58 +444,6 @@ export default function MyTamago() {
         )}
       </div>
 
-      {/* Today's meds */}
-      {schedule.length > 0 && (
-        <div className="pixel-box w-full p-4">
-          <h3 className="mb-3 font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>💊 TODAY'S MEDS</h3>
-          <div className="divide-y divide-[#e8d8c0]">
-            {schedule.map((med) => {
-              const log = todayLogs.find((l) => l.medication_name.toLowerCase() === med.medication_name.toLowerCase());
-              const taken = !!log;
-
-              // Check if any scheduled time has passed and med not taken
-              const now = new Date();
-              const isOverdue = !taken && med.scheduled_times.some((t) => {
-                const [h, m] = t.split(":").map(Number);
-                const scheduled = new Date();
-                scheduled.setHours(h, m, 0, 0);
-                return now > scheduled;
-              });
-
-              const scheduledStr = med.scheduled_times.map((t) => {
-                const [h, m] = t.split(":").map(Number);
-                const d = new Date(); d.setHours(h, m, 0);
-                return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
-              }).join(", ");
-
-              return (
-                <div key={med.id} className="flex items-center justify-between py-2.5">
-                  <div>
-                    <p className="font-pixel text-[7px]" style={{ color: isOverdue ? "#b85450" : "#6b4c35" }}>
-                      {isOverdue ? "⚠ " : ""}{med.medication_name}
-                    </p>
-                    <p className="font-pixel text-[5px] mt-1" style={{ color: "#b8a898" }}>
-                      {med.dose}{med.unit ? ` ${med.unit}` : ""} · {scheduledStr}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-0.5">
-                    {taken ? (
-                      <span className="pill pill-green font-pixel" style={{ fontSize: "5px" }}>✓ TAKEN</span>
-                    ) : isOverdue ? (
-                      <span className="pill pill-red font-pixel animate-pulse" style={{ fontSize: "5px" }}>⚠ OVERDUE</span>
-                    ) : (
-                      <span className="pill pill-grey font-pixel" style={{ fontSize: "5px" }}>PENDING</span>
-                    )}
-                    {log?.taken_at && (
-                      <span className="font-pixel text-[5px]" style={{ color: "#b8a898" }}>{formatTime(log.taken_at)}</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Today's support received */}
       {support.length > 0 && (

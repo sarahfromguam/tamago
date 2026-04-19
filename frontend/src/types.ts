@@ -120,3 +120,26 @@ export interface InviteOut {
   status: "pending" | "accepted";
   created_at: string;
 }
+
+export type OmiPipelinePath = "taken" | "distress" | "llm" | "none";
+
+export interface OmiConversation {
+  id: string;
+  started_at: string | null;
+  finished_at: string | null;
+  transcript: string;
+  path: OmiPipelinePath;
+  match: { medication: string; quote: string } | null;
+}
+
+export interface OmiPipelineStep {
+  step: string;
+  label: string;
+  detail: string;
+  result?: "match" | "skip" | "success" | "pending";
+}
+
+export interface OmiRunResult {
+  path: OmiPipelinePath;
+  steps: OmiPipelineStep[];
+}

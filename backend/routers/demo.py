@@ -11,9 +11,33 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from models.health_snapshot import Dimensions
-from services import oura
+from datetime import date as date_type
+
+from services import oura, db, omi_client
+from services.extractor import detect_taken, detect_distress
 from services.health_compute import compute_tamago_state
+
+DEMO_UID = os.environ.get("OMI_UID", "user_mia")
+
+
+def _compute_meds_from_supabase(uid: str) -> tuple[str, dict]:
+    """Return (dimension_state, detail) from today's schedule vs logs."""
+    today = date_type.today().isoformat()
+    schedule = db.get_schedule(uid)
+    logs = db.get_logs(uid, date=today)
+    if not schedule:
+        return "grey", {"score": 0, "label": "No schedule", "sublabel": "", "history": []}
+    logged_names = {l["medication_name"].lower() for l in logs if l.get("source") != "manual"}
+    taken = sum(1 for m in schedule if m["medication_name"].lower() in logged_names)
+    total = len(schedule)
+    score = round((taken / total) * 100)
+    if score == 100:
+        state, label, sublabel = "green", "All taken", "on schedule"
+    elif score >= 50:
+        state, label, sublabel = "yellow", f"{taken}/{total} taken", "some missed"
+    else:
+        state, label, sublabel = "red", f"{taken}/{total} taken", "needs attention"
+    return state, {"score": score, "label": label, "sublabel": sublabel, "history": []}
 
 router = APIRouter(prefix="/api/demo", tags=["demo"])
 
@@ -102,12 +126,15 @@ SEEDED_PATIENTS = [
 # ---------------------------------------------------------------------------
 
 async def _fetch_sarah() -> dict:
-    """Build a live FeedItem for Sarah from real Oura data."""
+    """Build a live FeedItem for Sarah from real Oura data + Supabase meds."""
     sleep_records, readiness_records, sessions, activity_records = await _fetch_oura()
     dims, details, vitals = oura.compute_dimensions_from_oura(
         sleep_records, readiness_records, sessions, activity_records
     )
     sleeping = oura.is_currently_sleeping(sessions)
+    meds_state, meds_detail = _compute_meds_from_supabase(DEMO_UID)
+    dims.meds = meds_state
+    details["meds"] = meds_detail
     state = compute_tamago_state(dims, sleeping, 0)
     return {
         "slug": "sarahs-egg",
@@ -283,3 +310,91 @@ async def get_circle(slug: str):
     return [
         {"name": "Friend", "phone": "+15550000000", "relationship": "Friend", "tier": 1},
     ]
+
+
+# ---------------------------------------------------------------------------
+# Omi pipeline demo
+# ---------------------------------------------------------------------------
+
+@router.get("/omi-conversations")
+async def get_omi_conversations(limit: int = 10):
+    """Fetch recent Omi conversations and annotate each with the pipeline path it would trigger."""
+    schedule = db.get_schedule(DEMO_UID)
+    try:
+        conversations = await omi_client.get_conversations(limit=limit, include_transcript=True)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Omi API error: {exc}")
+
+    result = []
+    for conv in conversations:
+        segments = conv.get("transcript_segments") or []
+        transcript = " ".join(s.get("text", "").strip() for s in segments if s.get("text", "").strip())
+
+        path = "none"
+        match_info = None
+
+        if transcript:
+            taken_match = detect_taken(transcript, schedule)
+            if taken_match:
+                path = "taken"
+                match_info = {"medication": taken_match["medication_name"], "quote": taken_match.get("raw_quote", "")}
+            elif detect_distress(transcript):
+                path = "distress"
+            else:
+                path = "none"
+
+        result.append({
+            "id": conv.get("id"),
+            "started_at": conv.get("started_at"),
+            "finished_at": conv.get("finished_at"),
+            "transcript": transcript,
+            "path": path,
+            "match": match_info,
+        })
+
+    return result
+
+
+class RunConversationRequest(BaseModel):
+    transcript: str
+    conversation_id: str
+
+
+@router.post("/omi-run")
+async def run_omi_pipeline(body: RunConversationRequest):
+    """Dry-run a transcript through the pipeline and return what action would be taken."""
+    schedule = db.get_schedule(DEMO_UID)
+    today = date_type.today().isoformat()
+    logs = db.get_logs(DEMO_UID, date=today)
+    logged_names = {l["medication_name"] for l in logs}
+
+    steps = []
+    steps.append({"step": "receive", "label": "Webhook received", "detail": f"{len(body.transcript.split())} words"})
+
+    taken_match = detect_taken(body.transcript, schedule)
+    if taken_match:
+        steps.append({"step": "detect", "label": "LLM: Medication taken", "detail": f'"{taken_match.get("raw_quote", "")}"', "result": "match"})
+        db.put_medication_log({
+            "uid": DEMO_UID,
+            "date": today,
+            "medication_name": taken_match["medication_name"],
+            "dose": taken_match.get("dose"),
+            "unit": taken_match.get("unit"),
+            "taken_at": datetime.now(timezone.utc).isoformat(),
+            "source": "webhook",
+            "conversation_id": body.conversation_id,
+            "confidence_score": taken_match.get("confidence"),
+            "notes": taken_match.get("raw_quote"),
+        })
+        steps.append({"step": "action", "label": "Logged to DB", "detail": taken_match["medication_name"], "result": "success"})
+        return {"path": "taken", "steps": steps}
+
+    if detect_distress(body.transcript):
+        pending = next((m for m in schedule if m["medication_name"] not in logged_names), None)
+        steps.append({"step": "detect", "label": "LLM: Distress detected", "detail": "stress signal found", "result": "match"})
+        if pending:
+            steps.append({"step": "action", "label": "WhatsApp → caregiver", "detail": f"re: {pending['medication_name']}", "result": "success"})
+        return {"path": "distress", "steps": steps}
+
+    steps.append({"step": "detect", "label": "LLM: Analysing transcript", "detail": "no health events found", "result": "skip"})
+    return {"path": "none", "steps": steps}

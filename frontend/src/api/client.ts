@@ -6,6 +6,8 @@ import type {
   FeedItem,
   InviteOut,
   MedicationLog,
+  OmiConversation,
+  OmiRunResult,
   ScheduledMedication,
   SupportActionOut,
   UserOut,
@@ -132,5 +134,16 @@ export const api = {
       `/api/get-support?uid=${uid}`,
       { method: "POST" }
     );
+  },
+
+  getOmiConversations(limit = 10) {
+    return request<OmiConversation[]>(`/api/demo/omi-conversations?limit=${limit}`);
+  },
+
+  runOmiPipeline(transcript: string, conversation_id: string) {
+    return request<OmiRunResult>("/api/demo/omi-run", {
+      method: "POST",
+      body: JSON.stringify({ transcript, conversation_id }),
+    });
   },
 };

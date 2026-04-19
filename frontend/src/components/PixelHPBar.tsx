@@ -52,7 +52,8 @@ export function PixelHPBar({
           </span>
           {onToggle !== undefined && (
             <button
-              onClick={onToggle}
+              data-toggle="true"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
               className="text-[14px] leading-none transition-opacity hover:opacity-70 active:scale-90"
               title={visible ? "Hide from supporters" : "Show to supporters"}
             >

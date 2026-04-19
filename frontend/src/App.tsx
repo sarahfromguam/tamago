@@ -5,6 +5,7 @@ import MyTamago from "./pages/MyTamago";
 import MedLog from "./pages/MedLog";
 import FriendDetail from "./pages/FriendDetail";
 import AcceptInvite from "./pages/AcceptInvite";
+import DemoConsole from "./pages/DemoConsole";
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="home" element={<HomeFeed />} />
         <Route path="my" element={<MyTamago />} />
         <Route path="meds" element={<MedLog />} />
+        <Route path="demo" element={<DemoConsole />} />
         <Route path="t/:slug" element={<FriendDetail />} />
         <Route path="invite/:code" element={<AcceptInvite />} />
       </Route>
