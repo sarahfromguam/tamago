@@ -71,8 +71,8 @@ const SEED_SUPPORTERS: Supporter[] = [
   { name: "Emma",   emoji: "🌸", color: "#e8a0bf", actions: ["☕", "💬", "📞"], role: "caregiver" },
   { name: "Jake",   emoji: "🌿", color: "#7cb894", actions: ["🍕", "💬"],       role: "friend"    },
   { name: "Maya",   emoji: "🌙", color: "#9b8ec4", actions: ["📹", "☕", "💬"], role: "caregiver" },
-  { name: "Liam",   emoji: "🔥", color: "#d4845a", actions: ["🍕", "🎁"],       role: "friend"    },
-  { name: "Sophie", emoji: "✨", color: "#c9a84c", actions: ["💬"],             role: "friend"    },
+  { name: "Nikhil", emoji: "🔥", color: "#d4845a", actions: ["🍕", "🎁"],       role: "friend"    },
+  { name: "Sarah",  emoji: "✨", color: "#c9a84c", actions: ["💬"],             role: "friend"    },
 ];
 
 function SupportersSection() {

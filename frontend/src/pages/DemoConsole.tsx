@@ -267,7 +267,7 @@ function DemoControls() {
   const handleFakeCurl = async () => {
     setCurlStatus("sending");
     try {
-      await api.simulateOmiWebhook("I just took my Metformin this morning with breakfast");
+      await api.simulateOmiWebhook("hey omi i just took my ibuprofen");
       setCurlStatus("sent");
     } catch {
       setCurlStatus("error");

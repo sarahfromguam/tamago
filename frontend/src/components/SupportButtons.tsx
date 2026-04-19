@@ -46,7 +46,7 @@ export default function SupportButtons({ phone, isSleeping, recommendedActions, 
       // Coffee/food: open pre-filled text
       const msg = action === "coffee"
         ? "Hey! I sent you a coffee treat \u{2615} Thinking of you!"
-        : "Hey! I ordered some food for you \u{1F355} Hope it helps!";
+        : "Hey! I ordered some food for you \u{1F355} Here's your DoorDash order: https://www.doordash.com/orders/gift/a8f3e2d1-7b9c-4e5a-bc12-6d4f8e3a9c71 \u{2014} Hope it helps!";
       window.open(`sms:${phone}?body=${encodeURIComponent(msg)}`, "_self");
     }
   };

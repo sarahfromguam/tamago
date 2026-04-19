@@ -122,10 +122,11 @@ SEEDED_PATIENTS = [
 
 
 # ---------------------------------------------------------------------------
-# Demo override — Sarah starts as "fried" for demo, flips to "okay" on meds
+# Demo override — Maya starts as "fried" for demo, flips to "okay" on meds
+# Sarah is static and never changes.
 # ---------------------------------------------------------------------------
 
-_SARAH_FRIED: dict = {
+_SARAH_STATIC: dict = {
     "slug": "sarahs-egg",
     "name": "Sarah",
     "phone": "",
@@ -144,19 +145,38 @@ _SARAH_FRIED: dict = {
     "recommended_actions": ["call", "food", "text"],
 }
 
-_SARAH_OKAY: dict = {
-    **_SARAH_FRIED,
+_MAYA_FRIED: dict = {
+    "slug": "mia-struggling",
+    "name": "Maya",
+    "phone": "+15555550101",
+    "base": "fried",
+    "is_sleeping": False,
+    "supported": True,
+    "support_count": 4,
+    "dimensions": {"sleep": "red", "stress": "red", "meds": "yellow"},
+    "dimension_details": {
+        "sleep":    {"score": 44, "label": "3.9h",     "sublabel": "deep deficit",   "history": [72, 65, 58, 50, 44, 40, 44]},
+        "stress":   {"score": 51, "label": "HRV 28ms", "sublabel": "needs rest",     "history": [70, 62, 58, 53, 51, 49, 51]},
+        "activity": {"score": 30, "label": "820 steps", "sublabel": "very sedentary", "history": [55, 48, 40, 35, 32, 28, 30]},
+        "meds":     {"score": 0,  "label": "0/5 taken", "sublabel": "none taken",     "history": []},
+    },
+    "vitals": {"steps": 820, "resting_hr": 78, "hrv": 28},
+    "recommended_actions": ["call", "food", "text"],
+}
+
+_MAYA_OKAY: dict = {
+    **_MAYA_FRIED,
     "base": "okay",
     "dimensions": {"sleep": "red", "stress": "red", "meds": "green"},
     "dimension_details": {
-        **_SARAH_FRIED["dimension_details"],
+        **_MAYA_FRIED["dimension_details"],
         "meds": {"score": 100, "label": "All taken", "sublabel": "on schedule", "history": []},
     },
     "recommended_actions": ["food", "text", "coffee"],
 }
 
 # Starts in fried state; POST /api/demo/take-meds flips it
-_demo_sarah_state: dict = dict(_SARAH_FRIED)
+_demo_maya_state: dict = dict(_MAYA_FRIED)
 
 
 # ---------------------------------------------------------------------------
@@ -200,37 +220,46 @@ async def _fetch_oura():
 
 @router.get("/tamago", response_model=dict)
 async def get_demo_tamago():
-    """Return demo-overridden Sarah state (fried or okay)."""
-    return dict(_demo_sarah_state)
+    """Return demo-overridden Maya state (fried or okay)."""
+    return dict(_demo_maya_state)
 
 
 @router.get("/feed", response_model=list)
 async def get_demo_feed():
-    """Feed: Sarah (demo override) + seeded patients."""
-    return [dict(_demo_sarah_state)] + SEEDED_PATIENTS
+    """Feed: Sarah (static) + seeded patients (Maya is dynamic)."""
+    # Replace the static Mia entry in SEEDED_PATIENTS with the dynamic state
+    feed = [dict(_SARAH_STATIC)]
+    for p in SEEDED_PATIENTS:
+        if p["slug"] == "mia-struggling":
+            feed.append(dict(_demo_maya_state))
+        else:
+            feed.append(dict(p))
+    return feed
 
 
 @router.post("/take-meds")
 async def take_meds():
-    """Flip Sarah from fried → okay (simulates medication taken)."""
-    global _demo_sarah_state
-    _demo_sarah_state = dict(_SARAH_OKAY)
+    """Flip Maya from fried → okay (simulates medication taken)."""
+    global _demo_maya_state
+    _demo_maya_state = dict(_MAYA_OKAY)
     return {"status": "ok", "new_base": "okay"}
 
 
 @router.post("/reset-sarah")
 async def reset_sarah():
-    """Reset Sarah back to fried state for re-demo."""
-    global _demo_sarah_state
-    _demo_sarah_state = dict(_SARAH_FRIED)
+    """Reset Maya back to fried state for re-demo."""
+    global _demo_maya_state
+    _demo_maya_state = dict(_MAYA_FRIED)
     return {"status": "ok", "new_base": "fried"}
 
 
 @router.get("/patient/{slug}", response_model=dict)
 async def get_demo_patient(slug: str):
-    """Return a single patient by slug — Sarah is live, others are seeded."""
-    if slug in ("sarahs-egg", "user_mia"):
-        return await get_demo_tamago()
+    """Return a single patient by slug — Maya is dynamic, others are static."""
+    if slug in ("mia-struggling", "user_mia"):
+        return dict(_demo_maya_state)
+    if slug == "sarahs-egg":
+        return dict(_SARAH_STATIC)
     patient = next((p for p in SEEDED_PATIENTS if p["slug"] == slug), None)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")

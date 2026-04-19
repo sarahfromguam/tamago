@@ -21,12 +21,12 @@ function extractSlug(input: string): string {
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === "true";
 const DEMO_EGG_KEY = "tamago_demo_egg_base";
 
-/** Apply the persisted demo egg base to Sarah's feed item so she stays in sync. */
+/** Apply the persisted demo egg base to Maya's feed item so she stays in sync. */
 function applyDemoOverrides(items: FeedItem[]): FeedItem[] {
   const saved = localStorage.getItem(DEMO_EGG_KEY) as import("../types").EggBase | null;
   if (!saved) return items;
   return items.map((item) => {
-    if (item.slug === "sarahs-egg") {
+    if (item.slug === "mia-struggling") {
       const isOkay = saved === "okay";
       return {
         ...item,

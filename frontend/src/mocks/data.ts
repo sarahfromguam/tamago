@@ -75,19 +75,19 @@ export const MOCK_FEED: FeedItem[] = [
   },
 ];
 
-// Demo seeded state — Sarah, fried (2h sleep, high stress, no meds)
+// Demo seeded state — Maya, fried (low sleep, high stress, no meds)
 export const MOCK_TAMAGO_STATE: EggState = {
   base: "fried",
   is_sleeping: false,
   supported: true,
-  support_count: 2,
-  dimensions: { sleep: "red", stress: "red", meds: "red" },
+  support_count: 4,
+  dimensions: { sleep: "red", stress: "red", meds: "yellow" },
   dimension_details: {
-    sleep:  { score: 20, label: "2.0h",      sublabel: "severe deficit",  history: [65, 55, 45, 38, 30, 24, 20] },
-    stress: { score: 35, label: "HRV 22ms",  sublabel: "high stress",     history: [60, 52, 48, 42, 38, 35, 35] },
-    meds:   { score: 0,  label: "0/5 taken",  sublabel: "none taken",      history: [] },
+    sleep:  { score: 44, label: "3.9h",      sublabel: "deep deficit",   history: [72, 65, 58, 50, 44, 40, 44] },
+    stress: { score: 51, label: "HRV 28ms",  sublabel: "needs rest",     history: [70, 62, 58, 53, 51, 49, 51] },
+    meds:   { score: 0,  label: "0/5 taken",  sublabel: "none taken",     history: [] },
   },
-  vitals: { steps: 340, resting_hr: 88, hrv: 22 },
+  vitals: { steps: 820, resting_hr: 78, hrv: 28 },
   recommended_actions: ["call", "food", "text"],
 };
 
