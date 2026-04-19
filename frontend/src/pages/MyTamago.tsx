@@ -1,16 +1,152 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import type { EggState, MedicationLog, ScheduledMedication, SupportActionOut } from "../types";
+import type { DimensionDetail, DimensionState, EggState, MedicationLog, ScheduledMedication, SupportActionOut } from "../types";
 import { usePhone } from "../hooks/usePhone";
 import { useMySlug } from "../hooks/usePhone";
 import { api } from "../api/client";
 import { MOCK_TAMAGO_STATE, MOCK_SUPPORT_ACTIONS } from "../mocks/data";
 import EggCharacter from "../components/EggCharacter";
-import DimensionDots from "../components/DimensionDots";
 import SupportBadge from "../components/SupportBadge";
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === "true";
 
+// ── Pixel HP Bar ────────────────────────────────────────────
+const STATE_COLORS: Record<DimensionState, { fill: string; glow: string; label: string }> = {
+  green:  { fill: "#22c55e", glow: "#86efac", label: "GOOD" },
+  yellow: { fill: "#eab308", glow: "#fde047", label: "OK" },
+  red:    { fill: "#ef4444", glow: "#fca5a5", label: "LOW" },
+  grey:   { fill: "#9ca3af", glow: "#e5e7eb", label: "N/A" },
+};
+
+const STAT_ICONS: Record<string, string> = {
+  sleep: "🌙",
+  stress: "💚",
+  meds: "💊",
+  activity: "👟",
+};
+
+function PixelHPBar({
+  label,
+  statKey,
+  state,
+  detail,
+  animDelay = 0,
+}: {
+  label: string;
+  statKey: string;
+  state: DimensionState;
+  detail?: DimensionDetail;
+  animDelay?: number;
+}) {
+  const score = detail?.score ?? 0;
+  const totalBlocks = 10;
+  const filledBlocks = state === "grey" ? 0 : Math.round((score / 100) * totalBlocks);
+  const colors = STATE_COLORS[state];
+  const history = detail?.history ?? [];
+
+  return (
+    <div
+      className="pixel-box w-full p-3"
+      style={{ animationDelay: `${animDelay}ms`, animation: "fadeInUp 0.4s ease-out both" }}
+    >
+      {/* Header row */}
+      <div className="mb-2 flex items-center justify-between">
+        <span className="font-pixel text-[7px] tracking-wide" style={{ color: "#2c1a0e" }}>
+          {STAT_ICONS[statKey]} {label.toUpperCase()}
+        </span>
+        <span
+          className="font-pixel text-[7px]"
+          style={{ color: colors.fill }}
+        >
+          {state === "grey" ? "- - -" : `${score} HP`}
+        </span>
+      </div>
+
+      {/* HP Blocks */}
+      <div className="mb-1.5 flex gap-0.5">
+        {Array.from({ length: totalBlocks }).map((_, i) => (
+          <div
+            key={i}
+            className="h-4 flex-1 border border-black/20"
+            style={{
+              backgroundColor: i < filledBlocks ? colors.fill : "#e5e0d0",
+              boxShadow: i < filledBlocks ? `0 0 4px ${colors.glow}` : "none",
+              imageRendering: "pixelated",
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Sub-label + sparkline */}
+      <div className="flex items-end justify-between gap-2">
+        <div>
+          {detail?.label && (
+            <p className="font-pixel text-[6px]" style={{ color: "#6b4c35" }}>
+              {detail.label}
+            </p>
+          )}
+          {detail?.sublabel && (
+            <p className="font-pixel text-[5px] mt-0.5" style={{ color: "#9a8070" }}>
+              {detail.sublabel}
+            </p>
+          )}
+        </div>
+
+        {/* Mini sparkline pixel bars (7-day history) */}
+        {history.length > 0 && (
+          <div className="flex items-end gap-px">
+            {history.slice(-7).map((val, i) => {
+              const h = Math.max(2, Math.round((val / 100) * 16));
+              return (
+                <div
+                  key={i}
+                  className="w-1.5"
+                  style={{
+                    height: `${h}px`,
+                    backgroundColor: val >= 75 ? "#22c55e" : val >= 50 ? "#eab308" : "#ef4444",
+                    imageRendering: "pixelated",
+                  }}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Status badge */}
+      <div className="mt-1.5 flex justify-end">
+        <span
+          className="font-pixel text-[5px] px-1.5 py-0.5 border border-current"
+          style={{ color: colors.fill, borderColor: colors.fill }}
+        >
+          {colors.label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Pixel vitals row ────────────────────────────────────────
+function PixelVitals({ steps, hrv, rhr }: { steps?: number; hrv?: number; rhr?: number }) {
+  const items = [
+    { icon: "👟", label: "STEPS", value: steps != null ? steps.toLocaleString() : "—" },
+    { icon: "❤️", label: "RHR", value: rhr != null ? `${rhr}bpm` : "—" },
+    { icon: "〰️", label: "HRV", value: hrv != null ? `${hrv}ms` : "—" },
+  ];
+  return (
+    <div className="flex gap-2 w-full">
+      {items.map(({ icon, label, value }) => (
+        <div key={label} className="pixel-box-sm flex-1 p-2 text-center">
+          <div className="text-sm">{icon}</div>
+          <div className="font-pixel text-[5px] mt-1" style={{ color: "#9a8070" }}>{label}</div>
+          <div className="font-pixel text-[7px] mt-0.5" style={{ color: "#2c1a0e" }}>{value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Onboarding ──────────────────────────────────────────────
 function Onboarding({ onCreated }: { onCreated: (slug: string) => void }) {
   const { setPhone } = usePhone();
   const [step, setStep] = useState(1);
@@ -41,9 +177,8 @@ function Onboarding({ onCreated }: { onCreated: (slug: string) => void }) {
     try {
       const { url } = await api.getOuraConnectUrl(createdSlug);
       window.location.href = url;
-      // After Oura OAuth, the callback will redirect back; step 3 loads on return
     } catch {
-      setStep(3); // let them skip if backend isn't wired yet
+      setStep(3);
     }
   };
 
@@ -86,7 +221,7 @@ function Onboarding({ onCreated }: { onCreated: (slug: string) => void }) {
         <span className="text-6xl">&#x1F48D;</span>
         <h1 className="text-2xl font-extrabold text-gray-700">Connect Your Oura Ring</h1>
         <p className="text-center text-sm text-gray-500">
-          We use Oura to track your sleep and readiness. You'll be taken to Oura's login page.
+          We use Oura to track your sleep and readiness.
         </p>
         <div className="w-full rounded-kawaii bg-white p-6 shadow-md">
           <button
@@ -106,7 +241,6 @@ function Onboarding({ onCreated }: { onCreated: (slug: string) => void }) {
     );
   }
 
-  // Step 3: Success
   return (
     <div className="flex flex-col items-center gap-6 pt-8">
       <span className="text-6xl">&#x1F389;</span>
@@ -143,12 +277,8 @@ export default function MyTamago() {
   const [inviteSent, setInviteSent] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Fetch on mount if we have a slug
-  useState(() => {
-    if (!slug) {
-      setLoading(false);
-      return;
-    }
+  useEffect(() => {
+    if (!slug) { setLoading(false); return; }
     if (USE_MOCKS) {
       setState(MOCK_TAMAGO_STATE);
       setSupport(MOCK_SUPPORT_ACTIONS);
@@ -156,24 +286,15 @@ export default function MyTamago() {
       return;
     }
     api.getTamagoState(slug)
-      .then((s) => setState(s))
-      .catch(() => {})
+      .then(setState)
+      .catch(() => setState(MOCK_TAMAGO_STATE))   // fall back to demo data if API is down
       .finally(() => setLoading(false));
-    api.getTodaySupport(slug)
-      .then(setSupport)
-      .catch(() => setSupport([]));
-  });
+    api.getTodaySupport(slug).then(setSupport).catch(() => setSupport([]));
+    api.getSchedule(UID).then(setSchedule).catch(() => {});
+    api.getLogs(UID, TODAY).then(setTodayLogs).catch(() => {});
+  }, [slug]);
 
-  useEffect(() => {
-    if (!USE_MOCKS) {
-      api.getSchedule(UID).then(setSchedule).catch(() => {});
-      api.getLogs(UID, TODAY).then(setTodayLogs).catch(() => {});
-    }
-  }, []);
-
-  if (!slug) {
-    return <Onboarding onCreated={setSlug} />;
-  }
+  if (!slug) return <Onboarding onCreated={setSlug} />;
 
   if (loading) {
     return (
@@ -193,9 +314,7 @@ export default function MyTamago() {
 
   const handleInvite = async () => {
     if (!invitePhone.trim()) return;
-    if (!USE_MOCKS) {
-      await api.sendInvite(slug, invitePhone.trim()).catch(() => {});
-    }
+    if (!USE_MOCKS) await api.sendInvite(slug, invitePhone.trim()).catch(() => {});
     setInviteSent(true);
     setInvitePhone("");
     setTimeout(() => setInviteSent(false), 3000);
@@ -208,58 +327,109 @@ export default function MyTamago() {
   };
 
   const ACTION_EMOJI: Record<string, string> = {
-    text: "\u{1F4AC}",
-    call: "\u{1F4DE}",
-    facetime: "\u{1F4F9}",
-    coffee: "\u{2615}",
-    food: "\u{1F355}",
+    text: "💬", call: "📞", facetime: "📹", coffee: "☕", food: "🍕",
   };
 
+  const dims = state.dimensions;
+  const details = state.dimension_details ?? {};
+  const statRows = [
+    { key: "sleep",  label: "Sleep",  state: dims.sleep,  detail: details.sleep },
+    { key: "stress", label: "Stress", state: dims.stress, detail: details.stress },
+    { key: "meds",   label: "Meds",   state: dims.meds,   detail: details.meds },
+  ] as const;
+
   return (
-    <div className="flex flex-col items-center gap-5">
-      <h1 className="text-2xl font-extrabold text-gray-700">My Tamago</h1>
+    <div className="flex flex-col items-center gap-3">
 
-      <EggCharacter base={state.base} isSleeping={state.is_sleeping} supported={state.supported} size="lg" />
+      {/* ── MY STATS image header ── */}
+      <img
+        src="/my-stats.png"
+        alt="My Stats"
+        className="w-56 object-contain"
+        style={{ marginBottom: "-8px" }}
+      />
 
-      <DimensionDots dimensions={state.dimensions} />
+      {/* ── Egg character (tight spacing) ── */}
+      <div className="relative">
+        <EggCharacter
+          base={state.base}
+          isSleeping={state.is_sleeping}
+          supported={state.supported}
+          size="lg"
+        />
+        {state.is_sleeping && (
+          <span
+            className="absolute -right-2 -top-2 font-pixel text-[8px] animate-pixel-pulse"
+            style={{ color: "#7c5cbf" }}
+          >
+            ZZZ
+          </span>
+        )}
+      </div>
 
-      <SupportBadge count={state.support_count} />
+      {/* ── Pixel stat bars ── */}
+      <div className="w-full space-y-2 mt-1">
+        {statRows.map(({ key, label, state: dimState, detail }, i) => (
+          <PixelHPBar
+            key={key}
+            statKey={key}
+            label={label}
+            state={dimState}
+            detail={detail}
+            animDelay={i * 80}
+          />
+        ))}
+      </div>
 
+      {/* ── Vitals row ── */}
+      {state.vitals && (
+        <PixelVitals
+          steps={state.vitals.steps}
+          hrv={state.vitals.hrv}
+          rhr={state.vitals.resting_hr}
+        />
+      )}
+
+      {/* ── Refresh button ── */}
       <button
         onClick={handleRefresh}
-        className="rounded-xl bg-white px-6 py-2 text-sm font-semibold text-gray-500 shadow-md transition-transform active:scale-95"
+        className="pixel-box-sm w-full py-2 font-pixel text-[7px] text-center transition-transform active:scale-95"
+        style={{ color: "#6b4c35" }}
       >
-        &#x1F504; Refresh Health Data
+        ↻ REFRESH DATA
       </button>
 
-      {/* Invite section */}
-      <div className="w-full rounded-kawaii bg-white p-5 shadow-md">
-        <h3 className="mb-3 text-sm font-bold text-gray-700">Invite Supporters</h3>
+      {/* ── Invite section ── */}
+      <div className="pixel-box w-full p-4">
+        <h3 className="mb-3 font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>INVITE SUPPORTERS</h3>
         <div className="flex gap-2">
           <input
             type="tel"
             placeholder="Phone number"
             value={invitePhone}
             onChange={(e) => setInvitePhone(e.target.value)}
-            className="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none focus:border-pink-300"
+            className="flex-1 border-2 border-[#2c1a0e] px-3 py-2 text-sm outline-none focus:border-tamago-accent font-body bg-[#fffef5]"
           />
           <button
             onClick={handleInvite}
-            className="rounded-xl bg-tamago-accent px-4 py-2 text-sm font-bold text-white transition-transform active:scale-95"
+            className="border-2 border-[#2c1a0e] px-4 py-2 font-pixel text-[7px] bg-tamago-accent text-white transition-transform active:scale-95"
+            style={{ boxShadow: "2px 2px 0 0 #2c1a0e" }}
           >
-            Send
+            SEND
           </button>
         </div>
         {inviteSent && (
-          <p className="mt-2 text-center text-xs font-semibold text-green-500">Invite sent!</p>
+          <p className="mt-2 text-center font-pixel text-[7px]" style={{ color: "#22c55e" }}>
+            ✓ INVITE SENT!
+          </p>
         )}
       </div>
 
-      {/* Today's medications */}
+      {/* ── Today's medications ── */}
       {schedule.length > 0 && (
-        <div className="w-full rounded-kawaii bg-white p-5 shadow-md">
-          <h3 className="mb-3 text-sm font-bold" style={{ color: "#8b7060" }}>💊 Today's Medications</h3>
-          <div className="divide-y divide-[#f0e8de]/80">
+        <div className="pixel-box w-full p-4">
+          <h3 className="mb-3 font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>💊 TODAY'S MEDS</h3>
+          <div className="divide-y divide-[#e8d8c0]">
             {schedule.map((med) => {
               const log = todayLogs.find(
                 (l) => l.medication_name.toLowerCase() === med.medication_name.toLowerCase()
@@ -273,19 +443,19 @@ export default function MyTamago() {
               return (
                 <div key={med.id} className="flex items-center justify-between py-2.5">
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: "#6b4c35" }}>{med.medication_name}</p>
-                    <p className="text-xs" style={{ color: "#b8a898" }}>
+                    <p className="font-pixel text-[7px]" style={{ color: "#6b4c35" }}>{med.medication_name}</p>
+                    <p className="font-pixel text-[5px] mt-1" style={{ color: "#b8a898" }}>
                       {med.dose}{med.unit ? ` ${med.unit}` : ""} · {scheduledStr}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-0.5">
                     {taken ? (
-                      <span className="pill pill-green">✓ Taken</span>
+                      <span className="pill pill-green font-pixel" style={{ fontSize: "5px" }}>✓ TAKEN</span>
                     ) : (
-                      <span className="pill pill-grey">— Pending</span>
+                      <span className="pill pill-grey font-pixel" style={{ fontSize: "5px" }}>PENDING</span>
                     )}
                     {log?.taken_at && (
-                      <span className="text-[10px]" style={{ color: "#b8a898" }}>{formatTime(log.taken_at)}</span>
+                      <span className="font-pixel text-[5px]" style={{ color: "#b8a898" }}>{formatTime(log.taken_at)}</span>
                     )}
                   </div>
                 </div>
@@ -294,24 +464,24 @@ export default function MyTamago() {
           </div>
           <Link
             to="/meds"
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#e8d8c8] py-2 text-xs font-semibold transition-colors hover:bg-[#fdf0e8]"
+            className="mt-3 flex w-full items-center justify-center gap-1.5 border-2 border-[#2c1a0e] py-2 font-pixel text-[6px] transition-colors hover:bg-[#fdf0e8]"
             style={{ color: "#8b7060" }}
           >
-            📋 View Full History
+            📋 VIEW FULL HISTORY
           </Link>
         </div>
       )}
 
-      {/* Today's support */}
+      {/* ── Today's support ── */}
       {support.length > 0 && (
-        <div className="w-full rounded-kawaii bg-white p-5 shadow-md">
-          <h3 className="mb-3 text-sm font-bold text-gray-700">Today's Support</h3>
+        <div className="pixel-box w-full p-4">
+          <h3 className="mb-3 font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>TODAY'S SUPPORT</h3>
           <div className="space-y-2">
             {support.map((s) => (
-              <div key={s.id} className="flex items-center gap-2 text-sm text-gray-600">
-                <span>{ACTION_EMOJI[s.action_type] ?? "?"}</span>
-                <span>{s.supporter_phone}</span>
-                <span className="text-gray-400">
+              <div key={s.id} className="flex items-center gap-2">
+                <span className="text-sm">{ACTION_EMOJI[s.action_type] ?? "?"}</span>
+                <span className="font-pixel text-[6px]" style={{ color: "#6b4c35" }}>{s.supporter_phone}</span>
+                <span className="font-pixel text-[5px] ml-auto" style={{ color: "#b8a898" }}>
                   {new Date(s.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
                 </span>
               </div>

@@ -35,7 +35,7 @@ export default function NavBar() {
         <div className="my-2.5 w-px" style={{ background: "rgba(255,255,255,0.08)" }} />
 
         <NavLink to="/my" className={({ isActive }) => `${base} ${isActive ? active : inactive}`}>
-          <img src="/eggs/fried.png" alt="" className="h-5 w-5 object-contain" style={{ filter: "drop-shadow(0 0 3px rgba(245,192,96,0))" }} />
+          <img src="/eggs/joyful.png" alt="" className="h-5 w-5 object-contain" style={{ filter: "drop-shadow(0 0 3px rgba(245,192,96,0))" }} />
           <span>My Tamago</span>
         </NavLink>
       </div>

@@ -92,3 +92,36 @@ body::after {
 .pill-yellow { background: #fef3d0; color: #9a7020; }
 .pill-green  { background: #d8f0d0; color: #3a7a4a; }
 .pill-grey   { background: #ece8e0; color: #8a7a6a; }
+
+/* ── Pixel / Tamagotchi UI ─────────────────────────────── */
+.font-pixel { font-family: "Press Start 2P", monospace; }
+
+.pixel-box {
+  background: #fffef5;
+  border: 3px solid #2c1a0e;
+  box-shadow:
+    4px 4px 0 0 #2c1a0e,
+    inset 1px 1px 0 0 rgba(255,255,255,0.6);
+  image-rendering: pixelated;
+}
+
+.pixel-box-sm {
+  background: #fffef5;
+  border: 2px solid #2c1a0e;
+  box-shadow: 2px 2px 0 0 #2c1a0e;
+}
+
+@keyframes pixelPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+.animate-pixel-pulse { animation: pixelPulse 1.2s step-end infinite; }
+
+@keyframes barFill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.animate-bar-fill {
+  transform-origin: left;
+  animation: barFill 0.6s steps(10, end) both;
+}

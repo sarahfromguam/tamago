@@ -1,27 +1,30 @@
-"""Demo endpoints — real Oura data for Sarah + seeded patients for the feed.
+"""Demo endpoints — real Oura data for Sarah + seeded patients + feature demos.
 
-Falls back to Supabase seeded data when DEMO_OURA_TOKEN is not configured.
+No Supabase required.
 """
 
 from __future__ import annotations
 
 import os
-from datetime import date
+from datetime import datetime, timezone
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from models.health_snapshot import Dimensions
-from services import db, oura
+from services import oura
 from services.health_compute import compute_tamago_state
 
 router = APIRouter(prefix="/api/demo", tags=["demo"])
 
 DEMO_TOKEN = os.environ.get("DEMO_OURA_TOKEN", "")
-DEMO_UID = os.environ.get("DEMO_UID", "user_mia")
+
+# In-memory OMI log for demo (resets on server restart)
+_omi_log: list[dict] = []
 
 
 # ---------------------------------------------------------------------------
-# Seeded patients (fixed data representing different health states)
+# Seeded patients
 # ---------------------------------------------------------------------------
 
 SEEDED_PATIENTS = [
@@ -31,10 +34,12 @@ SEEDED_PATIENTS = [
         "phone": "+15559876543",
         "dimensions": {"sleep": "green", "stress": "green", "meds": "green"},
         "dimension_details": {
-            "sleep":  {"score": 92, "label": "8.2h",     "sublabel": "well rested"},
-            "stress": {"score": 88, "label": "HRV 62ms", "sublabel": "good recovery"},
-            "meds":   {"score": 100, "label": "Taken",   "sublabel": "all doses taken"},
+            "sleep":    {"score": 92, "label": "8.2h",     "sublabel": "well rested",    "history": [88, 91, 94, 90, 87, 93, 92]},
+            "stress":   {"score": 88, "label": "HRV 62ms", "sublabel": "good recovery",  "history": [82, 85, 86, 88, 84, 87, 88]},
+            "activity": {"score": 90, "label": "9,420 steps", "sublabel": "great movement", "history": [78, 82, 88, 91, 85, 90, 90]},
+            "meds":     {"score": 100, "label": "Taken",   "sublabel": "on schedule",    "history": []},
         },
+        "vitals": {"steps": 9420, "resting_hr": 54, "hrv": 62},
         "base": "thriving",
         "is_sleeping": False,
         "supported": False,
@@ -47,15 +52,17 @@ SEEDED_PATIENTS = [
         "phone": "+15555550101",
         "dimensions": {"sleep": "red", "stress": "red", "meds": "yellow"},
         "dimension_details": {
-            "sleep":  {"score": 44, "label": "3.9h",     "sublabel": "deep deficit"},
-            "stress": {"score": 51, "label": "HRV 28ms", "sublabel": "needs rest"},
-            "meds":   {"score": 60, "label": "Partial",  "sublabel": "missed evening ibuprofen"},
+            "sleep":    {"score": 44, "label": "3.9h",     "sublabel": "deep deficit",   "history": [72, 65, 58, 50, 44, 40, 44]},
+            "stress":   {"score": 51, "label": "HRV 28ms", "sublabel": "needs rest",     "history": [70, 62, 58, 53, 51, 49, 51]},
+            "activity": {"score": 30, "label": "820 steps", "sublabel": "very sedentary", "history": [55, 48, 40, 35, 32, 28, 30]},
+            "meds":     {"score": 60, "label": "Partial",  "sublabel": "missed evening", "history": []},
         },
+        "vitals": {"steps": 820, "resting_hr": 78, "hrv": 28},
         "base": "fried",
         "is_sleeping": False,
         "supported": True,
         "support_count": 4,
-        "recommended_actions": ["food", "call", "text"],
+        "recommended_actions": ["call", "food", "text"],
     },
 ]
 
@@ -64,54 +71,32 @@ SEEDED_PATIENTS = [
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _meds_from_supabase(uid: str) -> tuple[str, dict]:
-    """Compute today's meds dimension from medication_logs vs medication_schedule."""
-    today = str(date.today())
-    try:
-        schedule = db.get_schedule(uid)
-        logs = db.get_logs(uid, date=today)
-        logged_names = {l["medication_name"] for l in logs}
-
-        if not schedule:
-            return "grey", {"score": 0, "label": "—", "sublabel": "not tracked"}
-
-        taken = sum(1 for s in schedule if s["medication_name"] in logged_names)
-        total = len(schedule)
-        ratio = taken / total
-        score = int(ratio * 100)
-
-        if ratio >= 0.9:
-            return "green", {"score": score, "label": "Taken",   "sublabel": "all doses taken"}
-        elif ratio >= 0.5:
-            return "yellow", {"score": score, "label": "Partial", "sublabel": f"{taken}/{total} taken today"}
-        else:
-            return "red",    {"score": score, "label": "Missed",  "sublabel": f"only {taken}/{total} taken"}
-    except Exception:
-        return "grey", {"score": 0, "label": "—", "sublabel": "not tracked"}
-
-
-def _tamago_from_supabase(uid: str) -> dict:
-    """Build a tamago state from Supabase seeded data."""
-    meds_state, meds_detail = _meds_from_supabase(uid)
-    dims = Dimensions(sleep="yellow", stress="green", meds=meds_state)
-    state = compute_tamago_state(dims, is_sleeping=False, support_count=0)
-
-    try:
-        user = db.get_user(uid)
-        name = user["name"] if user else "My Tamago"
-    except Exception:
-        name = "My Tamago"
-
+async def _fetch_sarah() -> dict:
+    """Build a live FeedItem for Sarah from real Oura data."""
+    sleep_records, readiness_records, sessions, activity_records = await _fetch_oura()
+    dims, details, vitals = oura.compute_dimensions_from_oura(
+        sleep_records, readiness_records, sessions, activity_records
+    )
+    sleeping = oura.is_currently_sleeping(sessions)
+    state = compute_tamago_state(dims, sleeping, 0)
     return {
-        "slug": uid,
-        "name": name,
+        "slug": "sarahs-egg",
+        "name": "Sarah",
+        "phone": "",
         **state.model_dump(),
-        "dimension_details": {
-            "sleep":  {"score": 72, "label": "6.5h",     "sublabel": "slightly short"},
-            "stress": {"score": 80, "label": "HRV 47ms", "sublabel": "recovering well"},
-            "meds":   meds_detail,
-        },
+        "dimension_details": details,
+        "vitals": vitals,
     }
+
+
+async def _fetch_oura():
+    import asyncio
+    return await asyncio.gather(
+        oura.get_daily_sleep(DEMO_TOKEN, days=7),
+        oura.get_daily_readiness(DEMO_TOKEN, days=7),
+        oura.get_sleep_sessions(DEMO_TOKEN),
+        oura.get_daily_activity(DEMO_TOKEN, days=7),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -120,42 +105,73 @@ def _tamago_from_supabase(uid: str) -> dict:
 
 @router.get("/tamago", response_model=dict)
 async def get_demo_tamago():
-    """EggState — real Oura data if token configured, otherwise Supabase seeded data."""
-    if DEMO_TOKEN:
-        try:
-            sleep_records, readiness_records, sessions = await _fetch_oura()
-            dims, details = oura.compute_dimensions_from_oura(sleep_records, readiness_records, sessions)
-            sleeping = oura.is_currently_sleeping(sessions)
-            state = compute_tamago_state(dims, sleeping, 0)
-            return {"slug": "sarahs-egg", "name": "Sarah", "phone": "", **state.model_dump(), "dimension_details": details}
-        except Exception:
-            pass
-
-    return _tamago_from_supabase(DEMO_UID)
+    """Live EggState from real Oura data for Sarah."""
+    if not DEMO_TOKEN:
+        raise HTTPException(status_code=503, detail="DEMO_OURA_TOKEN not configured")
+    try:
+        return await _fetch_sarah()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Oura API error: {exc}")
 
 
 @router.get("/feed", response_model=list)
 async def get_demo_feed():
-    """Feed combining primary user (Oura or Supabase) + seeded patients."""
-    primary = _tamago_from_supabase(DEMO_UID)
-
+    """Feed: Sarah (live Oura) + seeded patients."""
+    sarah: dict = {}
     if DEMO_TOKEN:
         try:
-            sleep_records, readiness_records, sessions = await _fetch_oura()
-            dims, details = oura.compute_dimensions_from_oura(sleep_records, readiness_records, sessions)
-            sleeping = oura.is_currently_sleeping(sessions)
-            state = compute_tamago_state(dims, sleeping, 0)
-            primary = {"slug": "sarahs-egg", "name": "Sarah", "phone": "", **state.model_dump(), "dimension_details": details}
+            sarah = await _fetch_sarah()
         except Exception:
             pass
+    return ([sarah] if sarah else []) + SEEDED_PATIENTS
 
-    return [primary] + SEEDED_PATIENTS
+
+@router.get("/patient/{slug}", response_model=dict)
+async def get_demo_patient(slug: str):
+    """Return a single patient by slug — Sarah is live, others are seeded."""
+    if slug == "sarahs-egg":
+        return await get_demo_tamago()
+    patient = next((p for p in SEEDED_PATIENTS if p["slug"] == slug), None)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return patient
 
 
-async def _fetch_oura():
-    import asyncio
-    return await asyncio.gather(
-        oura.get_daily_sleep(DEMO_TOKEN, days=3),
-        oura.get_daily_readiness(DEMO_TOKEN, days=3),
-        oura.get_sleep_sessions(DEMO_TOKEN),
-    )
+class BabyBreakRequest(BaseModel):
+    message: str | None = None
+
+
+@router.post("/baby-break")
+async def request_baby_break(body: BabyBreakRequest | None = None):
+    """Simulate sending a Baby Break alert to the support circle."""
+    msg = (body.message if body and body.message
+           else "Hey — Sarah's Tamago is showing she could use a break. Can you take the baby for 30 minutes?")
+    # In production: fire Twilio SMS to Tier 1 circle members
+    return {
+        "sent": True,
+        "message": msg,
+        "recipients": ["Partner (Tier 1)", "Mom (Tier 1)"],
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+class OmiLogRequest(BaseModel):
+    medication: str
+
+
+@router.post("/omi-log")
+async def log_medication(body: OmiLogRequest):
+    """Simulate OMI voice detection logging a medication."""
+    entry = {
+        "medication": body.medication,
+        "logged_at": datetime.now(timezone.utc).isoformat(),
+        "source": "omi_voice",
+    }
+    _omi_log.append(entry)
+    return {"logged": True, **entry}
+
+
+@router.get("/omi-log")
+async def get_omi_log():
+    """Return all OMI medication logs for this session."""
+    return _omi_log

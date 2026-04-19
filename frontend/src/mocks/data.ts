@@ -65,10 +65,11 @@ export const MOCK_TAMAGO_STATE: EggState = {
   support_count: 2,
   dimensions: { sleep: "yellow", stress: "yellow", meds: "grey" },
   dimension_details: {
-    sleep:  { score: 79, label: "6.3h",   sublabel: "slightly short" },
-    stress: { score: 74, label: "HRV 43", sublabel: "moderate recovery" },
-    meds:   { score: 0,  label: "—",      sublabel: "not tracked" },
+    sleep:  { score: 79, label: "6.3h",   sublabel: "slightly short",    history: [85, 88, 76, 82, 71, 68, 79] },
+    stress: { score: 74, label: "HRV 43", sublabel: "moderate recovery", history: [79, 67, 65, 74, 70, 72, 74] },
+    meds:   { score: 0,  label: "—",      sublabel: "not tracked",        history: [] },
   },
+  vitals: { steps: 5230, resting_hr: 56, hrv: 43 },
   recommended_actions: ["coffee", "food", "text"],
 };
 

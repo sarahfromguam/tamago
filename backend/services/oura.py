@@ -95,6 +95,18 @@ async def get_daily_readiness(token: str, days: int = 7) -> list[dict]:
     return sorted(records, key=lambda r: r.get("day", ""), reverse=True)
 
 
+async def get_daily_activity(token: str, days: int = 7) -> list[dict]:
+    """Fetch daily activity (steps, calories, score) for the past N days."""
+    end = datetime.now(timezone.utc).date()
+    start = end - timedelta(days=days)
+    data = await _get(token, "/v2/usercollection/daily_activity", {
+        "start_date": start.isoformat(),
+        "end_date": end.isoformat(),
+    })
+    records = data.get("data", [])
+    return sorted(records, key=lambda r: r.get("day", ""), reverse=True)
+
+
 async def get_sleep_sessions(token: str) -> list[dict]:
     """Recent sleep sessions — used to detect if user is currently sleeping."""
     now = datetime.now(timezone.utc)
@@ -157,13 +169,26 @@ def compute_dimensions_from_oura(
     sleep_records: list[dict],
     readiness_records: list[dict],
     sessions: list[dict] | None = None,
-) -> tuple[Dimensions, dict]:
-    """Return (Dimensions, dimension_details) from Oura daily records."""
+    activity_records: list[dict] | None = None,
+) -> tuple[Dimensions, dict, dict]:
+    """Return (Dimensions, dimension_details, vitals) from Oura daily records.
+
+    dimension_details keys: sleep, stress, meds, activity
+    vitals keys: steps, resting_hr, hrv
+    """
     sleep_rec = sleep_records[0] if sleep_records else {}
     ready_rec = readiness_records[0] if readiness_records else {}
+    act_rec   = activity_records[0] if activity_records else {}
+    sess = sessions or []
 
     sleep_score: float | None = sleep_rec.get("score")
     readiness_score: float | None = ready_rec.get("score")
+    activity_score: float | None = act_rec.get("score")
+
+    # 7-day history arrays (oldest→newest) for sparklines
+    sleep_history = [int(r["score"]) for r in reversed(sleep_records) if r.get("score") is not None]
+    ready_history = [int(r["score"]) for r in reversed(readiness_records) if r.get("score") is not None]
+    act_history   = [int(r["score"]) for r in reversed(activity_records or []) if r.get("score") is not None]
 
     def sleep_state(v: float) -> DimensionState:
         if v >= 85: return "green"
@@ -178,31 +203,55 @@ def compute_dimensions_from_oura(
     dims = Dimensions(
         sleep=sleep_state(sleep_score) if sleep_score is not None else "grey",
         stress=readiness_state(readiness_score) if readiness_score is not None else "grey",
-        meds="grey",  # populated separately from Omi
+        meds="grey",
     )
 
-    # Human-readable detail for the UI data panel
     details: dict = {}
-    sess = sessions or []
+
     if sleep_score is not None:
         hours = _sleep_hours(sleep_rec, sess)
-        sublabels = {
-            "green": "well rested", "yellow": "slightly short", "red": "deep deficit",
-        }
+        sublabels = {"green": "well rested", "yellow": "slightly short", "red": "deep deficit"}
         details["sleep"] = {
             "score": int(sleep_score),
             "label": hours,
             "sublabel": sublabels.get(dims.sleep, ""),
-        }
-    if readiness_score is not None:
-        hrv = _hrv_label(ready_rec, sess)
-        sublabels = {
-            "green": "good recovery", "yellow": "elevated stress", "red": "needs rest",
-        }
-        details["stress"] = {
-            "score": int(readiness_score),
-            "label": hrv,
-            "sublabel": sublabels.get(dims.stress, ""),
+            "history": sleep_history,
         }
 
-    return dims, details
+    if readiness_score is not None:
+        hrv_lbl = _hrv_label(ready_rec, sess)
+        sublabels = {"green": "good recovery", "yellow": "moderate stress", "red": "needs rest"}
+        details["stress"] = {
+            "score": int(readiness_score),
+            "label": hrv_lbl,
+            "sublabel": sublabels.get(dims.stress, ""),
+            "history": ready_history,
+        }
+
+    if activity_score is not None:
+        steps = act_rec.get("steps", 0)
+        steps_lbl = f"{steps:,} steps"
+        act_sublabel = "great movement" if steps >= 8000 else "light movement" if steps >= 3000 else "very sedentary"
+        details["activity"] = {
+            "score": int(activity_score),
+            "label": steps_lbl,
+            "sublabel": act_sublabel,
+            "history": act_history,
+        }
+
+    # Vitals: raw numbers for the stats strip
+    resting_hr: int | None = None
+    hrv_avg: int | None = None
+    for s in sorted(sess, key=lambda x: x.get("total_sleep_duration", 0), reverse=True):
+        if s.get("lowest_heart_rate") and resting_hr is None:
+            resting_hr = int(s["lowest_heart_rate"])
+        if s.get("average_hrv") and hrv_avg is None:
+            hrv_avg = int(s["average_hrv"])
+
+    vitals: dict = {
+        "steps": act_rec.get("steps"),
+        "resting_hr": resting_hr,
+        "hrv": hrv_avg,
+    }
+
+    return dims, details, vitals

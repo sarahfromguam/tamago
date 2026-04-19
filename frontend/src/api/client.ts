@@ -28,9 +28,8 @@ export const api = {
     });
   },
 
-  getTamagoState(_slug: string) {
-    // Demo: always use real Oura data from the demo endpoint
-    return request<EggState & { name?: string; phone?: string }>("/api/demo/tamago");
+  getTamagoState(slug: string) {
+    return request<EggState & { name?: string; phone?: string }>(`/api/demo/patient/${slug}`);
   },
 
   updateUser(slug: string, body: Partial<{ name: string; oura_token: string; omi_enabled: boolean }>) {
