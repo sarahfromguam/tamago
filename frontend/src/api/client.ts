@@ -140,6 +140,10 @@ export const api = {
     return request<OmiConversation[]>(`/api/demo/omi-conversations?limit=${limit}`);
   },
 
+  getWebhookLog() {
+    return request<OmiConversation[]>("/api/demo/webhook-log");
+  },
+
   runOmiPipeline(transcript: string, conversation_id: string) {
     return request<OmiRunResult>("/api/demo/omi-run", {
       method: "POST",

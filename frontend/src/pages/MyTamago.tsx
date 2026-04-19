@@ -269,6 +269,11 @@ export default function MyTamago() {
       .finally(() => setLoading(false));
     api.getTodaySupport(slug).then(setSupport).catch(() => setSupport([]));
     api.getVisibility(slug).then(setVisibilityState).catch(() => {});
+
+    const poll = setInterval(() => {
+      api.getTamagoState(slug).then(setState).catch(() => {});
+    }, 8000);
+    return () => clearInterval(poll);
   }, [slug]);
 
   const toggleDimension = (key: keyof DimensionVisibility) => {

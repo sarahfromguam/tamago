@@ -118,19 +118,21 @@ export default function MedLog() {
   const [recentLogs, setRecentLogs] = useState<MedicationLog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchData = () =>
     Promise.all([
       api.getSchedule(UID),
       api.getLogs(UID, TODAY),
       api.getLogs(UID),
-    ])
-      .then(([sched, today, all]) => {
-        setSchedule(sched);
-        setTodayLogs(today);
-        setRecentLogs(all.filter((l) => l.source !== "manual").slice(0, 20));
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    ]).then(([sched, today, all]) => {
+      setSchedule(sched);
+      setTodayLogs(today);
+      setRecentLogs(all.filter((l) => l.source !== "manual").slice(0, 20));
+    }).catch(() => {});
+
+  useEffect(() => {
+    fetchData().finally(() => setLoading(false));
+    const poll = setInterval(fetchData, 8000);
+    return () => clearInterval(poll);
   }, []);
 
   const takenCount = schedule.filter((m) =>

@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from services.extractor import detect_distress, detect_taken, extract_medication_events
 from services.twilio_message import send_caregiver_message as send_caregiver_sms
-from services import db
+from services import db, webhook_log
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/webhook", tags=["webhooks"])
@@ -67,6 +67,9 @@ async def _process_omi_memory(uid: str, payload: MemoryWebhookPayload) -> None:
     today_logs = db.get_logs(uid, date=today)
     logged_names = {l["medication_name"] for l in today_logs}
 
+    path = "none"
+    match_info = None
+
     # Path 1 — taken keyword detected → log the medication (before distress to avoid false SMS)
     match = detect_taken(transcript, schedule)
     if match:
@@ -82,10 +85,10 @@ async def _process_omi_memory(uid: str, payload: MemoryWebhookPayload) -> None:
             "confidence_score": match.get("confidence"),
             "notes": match.get("raw_quote"),
         })
-        return
-
-    # Path 2 — distress detected → SMS caregiver about first overdue med
-    if detect_distress(transcript) and CAREGIVER_PHONE:
+        path = "taken"
+        match_info = {"medication": match["medication_name"], "quote": match.get("raw_quote", "")}
+    elif detect_distress(transcript) and CAREGIVER_PHONE:
+        # Path 2 — distress detected → SMS caregiver about first overdue med
         pending = next((m for m in schedule if m["medication_name"] not in logged_names), None)
         if pending:
             user = db.get_user(uid)
@@ -95,6 +98,19 @@ async def _process_omi_memory(uid: str, payload: MemoryWebhookPayload) -> None:
                 logger.info("caregiver SMS sent uid=%s med=%s", uid, pending["medication_name"])
             except Exception as e:
                 logger.error("caregiver SMS failed: %s", e)
+        path = "distress"
+
+    webhook_log.append({
+        "id": payload.id,
+        "received_at": datetime.now(timezone.utc).isoformat(),
+        "started_at": payload.started_at.isoformat() if payload.started_at else None,
+        "finished_at": payload.finished_at.isoformat() if payload.finished_at else None,
+        "transcript": transcript,
+        "path": path,
+        "match": match_info,
+    })
+
+    if path in ("taken", "distress"):
         return
 
     # Path 3 — fall back to LLM

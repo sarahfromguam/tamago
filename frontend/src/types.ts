@@ -127,6 +127,7 @@ export interface OmiConversation {
   id: string;
   started_at: string | null;
   finished_at: string | null;
+  received_at?: string | null;
   transcript: string;
   path: OmiPipelinePath;
   match: { medication: string; quote: string } | null;

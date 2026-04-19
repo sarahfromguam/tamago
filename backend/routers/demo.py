@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from datetime import date as date_type
 
-from services import oura, db, omi_client
+from services import oura, db, omi_client, webhook_log
 from services.extractor import detect_taken, detect_distress
 from services.health_compute import compute_tamago_state
 
@@ -186,7 +186,7 @@ async def get_demo_feed():
 @router.get("/patient/{slug}", response_model=dict)
 async def get_demo_patient(slug: str):
     """Return a single patient by slug — Sarah is live, others are seeded."""
-    if slug == "sarahs-egg":
+    if slug in ("sarahs-egg", "user_mia"):
         return await get_demo_tamago()
     patient = next((p for p in SEEDED_PATIENTS if p["slug"] == slug), None)
     if not patient:
@@ -386,7 +386,7 @@ async def run_omi_pipeline(body: RunConversationRequest):
             "confidence_score": taken_match.get("confidence"),
             "notes": taken_match.get("raw_quote"),
         })
-        steps.append({"step": "action", "label": "Logged to DB", "detail": taken_match["medication_name"], "result": "success"})
+        steps.append({"step": "action", "label": "Updated Status", "detail": taken_match["medication_name"], "result": "success"})
         return {"path": "taken", "steps": steps}
 
     if detect_distress(body.transcript):
@@ -398,3 +398,9 @@ async def run_omi_pipeline(body: RunConversationRequest):
 
     steps.append({"step": "detect", "label": "LLM: Analysing transcript", "detail": "no health events found", "result": "skip"})
     return {"path": "none", "steps": steps}
+
+
+@router.get("/webhook-log")
+async def get_webhook_log():
+    """Return Omi conversations received via live webhook (in-memory, newest first)."""
+    return webhook_log.get_all()
