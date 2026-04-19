@@ -3,6 +3,8 @@ import type {
   EggState,
   FeedItem,
   InviteOut,
+  MedicationLog,
+  ScheduledMedication,
   SupportActionOut,
   UserOut,
 } from "../types";
@@ -73,5 +75,14 @@ export const api = {
 
   getFeed(_phone: string) {
     return request<FeedItem[]>("/api/demo/feed");
+  },
+
+  getSchedule(uid: string) {
+    return request<ScheduledMedication[]>(`/api/schedule?uid=${uid}`);
+  },
+
+  getLogs(uid: string, date?: string) {
+    const q = date ? `&date=${date}` : "";
+    return request<MedicationLog[]>(`/api/logs?uid=${uid}${q}`);
   },
 };

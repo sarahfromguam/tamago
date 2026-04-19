@@ -1,5 +1,6 @@
-import { useState } from "react";
-import type { EggState, SupportActionOut } from "../types";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import type { EggState, MedicationLog, ScheduledMedication, SupportActionOut } from "../types";
 import { usePhone } from "../hooks/usePhone";
 import { useMySlug } from "../hooks/usePhone";
 import { api } from "../api/client";
@@ -123,10 +124,21 @@ function Onboarding({ onCreated }: { onCreated: (slug: string) => void }) {
   );
 }
 
+const _d = new Date();
+const TODAY = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, "0")}-${String(_d.getDate()).padStart(2, "0")}`;
+const UID = "user_mia";
+
+function formatTime(iso: string | null) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
 export default function MyTamago() {
   const { slug, setSlug } = useMySlug();
   const [state, setState] = useState<EggState | null>(null);
   const [support, setSupport] = useState<SupportActionOut[]>([]);
+  const [schedule, setSchedule] = useState<ScheduledMedication[]>([]);
+  const [todayLogs, setTodayLogs] = useState<MedicationLog[]>([]);
   const [invitePhone, setInvitePhone] = useState("");
   const [inviteSent, setInviteSent] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -151,6 +163,13 @@ export default function MyTamago() {
       .then(setSupport)
       .catch(() => setSupport([]));
   });
+
+  useEffect(() => {
+    if (!USE_MOCKS) {
+      api.getSchedule(UID).then(setSchedule).catch(() => {});
+      api.getLogs(UID, TODAY).then(setTodayLogs).catch(() => {});
+    }
+  }, []);
 
   if (!slug) {
     return <Onboarding onCreated={setSlug} />;
@@ -236,6 +255,53 @@ export default function MyTamago() {
         )}
       </div>
 
+      {/* Today's medications */}
+      {schedule.length > 0 && (
+        <div className="w-full rounded-kawaii bg-white p-5 shadow-md">
+          <h3 className="mb-3 text-sm font-bold" style={{ color: "#8b7060" }}>💊 Today's Medications</h3>
+          <div className="divide-y divide-[#f0e8de]/80">
+            {schedule.map((med) => {
+              const log = todayLogs.find(
+                (l) => l.medication_name.toLowerCase() === med.medication_name.toLowerCase()
+              );
+              const taken = !!log;
+              const scheduledStr = med.scheduled_times.map((t) => {
+                const [h, m] = t.split(":").map(Number);
+                const d = new Date(); d.setHours(h, m, 0);
+                return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+              }).join(", ");
+              return (
+                <div key={med.id} className="flex items-center justify-between py-2.5">
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: "#6b4c35" }}>{med.medication_name}</p>
+                    <p className="text-xs" style={{ color: "#b8a898" }}>
+                      {med.dose}{med.unit ? ` ${med.unit}` : ""} · {scheduledStr}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-0.5">
+                    {taken ? (
+                      <span className="pill pill-green">✓ Taken</span>
+                    ) : (
+                      <span className="pill pill-grey">— Pending</span>
+                    )}
+                    {log?.taken_at && (
+                      <span className="text-[10px]" style={{ color: "#b8a898" }}>{formatTime(log.taken_at)}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <Link
+            to="/meds"
+            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#e8d8c8] py-2 text-xs font-semibold transition-colors hover:bg-[#fdf0e8]"
+            style={{ color: "#8b7060" }}
+          >
+            📋 View Full History
+          </Link>
+        </div>
+      )}
+
       {/* Today's support */}
       {support.length > 0 && (
         <div className="w-full rounded-kawaii bg-white p-5 shadow-md">
@@ -246,7 +312,7 @@ export default function MyTamago() {
                 <span>{ACTION_EMOJI[s.action_type] ?? "?"}</span>
                 <span>{s.supporter_phone}</span>
                 <span className="text-gray-400">
-                  {new Date(s.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                  {new Date(s.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
                 </span>
               </div>
             ))}

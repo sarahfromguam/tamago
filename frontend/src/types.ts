@@ -57,6 +57,31 @@ export interface SupportActionOut {
   created_at: string;
 }
 
+export interface MedicationLog {
+  id: string;
+  uid: string;
+  date: string;
+  medication_name: string;
+  dose: string | null;
+  unit: string | null;
+  taken_at: string | null;
+  source: "webhook" | "manual" | "realtime";
+  confidence_score: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface ScheduledMedication {
+  id: string;
+  uid: string;
+  medication_name: string;
+  dose: string;
+  unit: string | null;
+  frequency: string;
+  scheduled_times: string[];
+  reminders_enabled: boolean;
+}
+
 export interface InviteOut {
   id: string;
   user_id: string;

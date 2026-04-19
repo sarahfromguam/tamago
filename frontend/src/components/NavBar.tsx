@@ -12,7 +12,7 @@ export default function NavBar() {
           <span className="text-2xl">&#x1F3E0;</span>
           <span>Home</span>
         </NavLink>
-        <NavLink to="/my" className={({ isActive }) => `${base} ${isActive ? active : inactive}`}>
+<NavLink to="/my" className={({ isActive }) => `${base} ${isActive ? active : inactive}`}>
           <img src="/eggs/fried.png" alt="My Tamago" className="h-7 w-7 object-contain" />
           <span>My Tamago</span>
         </NavLink>

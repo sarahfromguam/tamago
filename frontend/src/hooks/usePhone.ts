@@ -5,7 +5,7 @@ const SLUG_KEY = "tamago_my_slug";
 
 // Always seed for demo so we skip auth flows
 if (!localStorage.getItem(PHONE_KEY)) localStorage.setItem(PHONE_KEY, "+15550001234");
-if (!localStorage.getItem(SLUG_KEY)) localStorage.setItem(SLUG_KEY, "sarahs-egg");
+if (!localStorage.getItem(SLUG_KEY)) localStorage.setItem(SLUG_KEY, "user_mia");
 
 export function usePhone() {
   const [phone, setPhoneState] = useState(() => localStorage.getItem(PHONE_KEY) ?? "");
