@@ -5,5 +5,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    host: true,
+    allowedHosts: true,
+    proxy: {
+      "/api": "http://localhost:8002",
+      "/webhook": "http://localhost:8002",
+    },
   },
 });

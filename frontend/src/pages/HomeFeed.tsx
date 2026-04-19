@@ -239,7 +239,7 @@ export default function HomeFeed() {
   if (loading) {
     return (
       <div>
-        <h1 className="ghibli-heading mb-6 text-center text-3xl">Your Friends</h1>
+        <h1 className="font-pixel text-[13px] tracking-widest mb-6 text-center" style={{ color: "#2c1a0e" }}>MY CIRCLE</h1>
         <div className="grid grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((i) => <div key={i} className="h-40 animate-pulse rounded-kawaii bg-white/50" />)}
         </div>
@@ -259,14 +259,7 @@ export default function HomeFeed() {
 
   return (
     <div className="flex flex-col items-center gap-0">
-      {/* "Your Village" title image */}
-      <img
-        src="/your-village.png"
-        alt="Your Village"
-        className="w-full object-contain drop-shadow-sm"
-        style={{ maxWidth: "26rem" }}
-        draggable={false}
-      />
+      <h1 className="font-pixel text-[13px] tracking-widest mb-1" style={{ color: "#2c1a0e" }}>MY CIRCLE</h1>
 
       {/* ── Pixel frame wrapper ───────────────────────────────────────────────
           Outer div = dark wood border (shows as 4px inset via padding).

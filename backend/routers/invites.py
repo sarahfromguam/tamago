@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from models.invite import InviteAccept, InviteCreate, InviteOut
 from services.supabase_client import get_supabase
-from services.twilio_sms import send_invite_sms
+from services.twilio_message import send_invite_message as send_invite_sms
 
 router = APIRouter(tags=["invites"])
 

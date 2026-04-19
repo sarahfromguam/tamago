@@ -13,7 +13,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
-DUMMY_FILE = DATA_DIR / "dummy_postpartum_conversation.json"
+filename = sys.argv[1] if len(sys.argv) > 1 else "dummy_postpartum_conversation.json"
+DUMMY_FILE = DATA_DIR / filename
 PORT = os.environ.get("BACKEND_PORT", "8002")
 LOCAL_WEBHOOK = f"http://localhost:{PORT}/webhook/omi"
 UID = os.environ.get("OMI_UID", "user_mia")

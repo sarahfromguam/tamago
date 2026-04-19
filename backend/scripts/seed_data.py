@@ -34,7 +34,20 @@ def seed():
     print(f"✓ user {UID}")
 
     # Schedule
+    now_pdt = datetime.now(PDT)
+    overdue_time = (now_pdt - timedelta(hours=1)).strftime("%H:%M")
+
     schedule = [
+        {
+            "uid": UID,
+            "medication_name": "Tylenol",
+            "dose": "500",
+            "unit": "mg",
+            "frequency": "as needed",
+            "scheduled_times": [overdue_time],
+            "start_date": str(TODAY),
+            "reminders_enabled": True,
+        },
         {
             "uid": UID,
             "medication_name": "Ibuprofen",

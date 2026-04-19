@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { Link } from "react-router-dom";
 import NavBar from "./NavBar";
 
+
 export default function Layout() {
   return (
     <div className="min-h-screen font-display">
@@ -18,7 +19,7 @@ export default function Layout() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-md px-4 pb-28 pt-4">
+      <div className="mx-auto max-w-md px-4 pb-6 pt-4">
         <Outlet />
       </div>
       <NavBar />

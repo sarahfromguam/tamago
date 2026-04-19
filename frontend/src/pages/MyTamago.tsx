@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { Link } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 import type {
   CircleMember,
   DimensionVisibility,
@@ -245,6 +247,11 @@ const _d = new Date();
 const TODAY = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, "0")}-${String(_d.getDate()).padStart(2, "0")}`;
 const UID = "user_mia";
 
+function formatTime(iso: string | null) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
 const DEFAULT_VIS: DimensionVisibility = { sleep: true, stress: true, meds: true, activity: true };
 
 export default function MyTamago() {
@@ -256,6 +263,8 @@ export default function MyTamago() {
   const [todayLogs, setTodayLogs] = useState<MedicationLog[]>([]);
   const [invitePhone, setInvitePhone] = useState("");
   const [inviteSent, setInviteSent] = useState(false);
+  const [supporting, setSupporting] = useState(false);
+  const [supportStatus, setSupportStatus] = useState<"idle" | "sent" | "error">("idle");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -274,6 +283,23 @@ export default function MyTamago() {
     api.getVisibility(slug).then(setVisibilityState).catch(() => {});
     api.getSchedule(UID).then(setSchedule).catch(() => {});
     api.getLogs(UID, TODAY).then(setTodayLogs).catch(() => {});
+
+    // Realtime — auto-update when a new medication log is inserted
+    const channel = supabase
+      .channel("med-logs-live")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "medication_logs", filter: `uid=eq.${UID}` },
+        (payload) => {
+          const newLog = payload.new as MedicationLog;
+          if (newLog.date === TODAY) {
+            setTodayLogs((prev) => [...prev, newLog]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [slug]);
 
   const toggleDimension = (key: keyof DimensionVisibility) => {
@@ -307,6 +333,20 @@ export default function MyTamago() {
     setInviteSent(true);
     setInvitePhone("");
     setTimeout(() => setInviteSent(false), 3000);
+  };
+
+  const handleGetSupport = async () => {
+    setSupporting(true);
+    setSupportStatus("idle");
+    try {
+      await api.getSupport(UID);
+      setSupportStatus("sent");
+    } catch {
+      setSupportStatus("error");
+    } finally {
+      setSupporting(false);
+      setTimeout(() => setSupportStatus("idle"), 4000);
+    }
   };
 
   const handleRefresh = async () => {
@@ -345,12 +385,28 @@ export default function MyTamago() {
         )}
       </div>
 
+      {/* ── Get Support button ── */}
+      <div className="flex w-full justify-end">
+        <button
+          onClick={handleGetSupport}
+          disabled={supporting}
+          className="border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[6px] transition-transform active:scale-95 disabled:opacity-60"
+          style={{
+            backgroundColor: supportStatus === "sent" ? "#22c55e" : supportStatus === "error" ? "#ef4444" : "#c4a882",
+            color: "#fff",
+            boxShadow: "2px 2px 0 0 #2c1a0e",
+          }}
+        >
+          {supporting ? "SENDING..." : supportStatus === "sent" ? "✓ SENT!" : supportStatus === "error" ? "✗ FAILED" : "🆘 GET SUPPORT"}
+        </button>
+      </div>
+
       {/* Visibility hint */}
       <p className="font-pixel text-[6px] text-center" style={{ color: "#9a8070" }}>
         TAP 👁️ TO SHOW/HIDE STATS FROM YOUR FRIENDS
       </p>
 
-      {/* Stat bars with visibility toggles */}
+      {/* ── Pixel stat bars ── */}
       <div className="w-full space-y-2 mt-1">
         {statRows.map(({ key, label, dimKey, state: dimState, detail }, i) => (
           <PixelHPBar
@@ -413,22 +469,44 @@ export default function MyTamago() {
             {schedule.map((med) => {
               const log = todayLogs.find((l) => l.medication_name.toLowerCase() === med.medication_name.toLowerCase());
               const taken = !!log;
+
+              // Check if any scheduled time has passed and med not taken
+              const now = new Date();
+              const isOverdue = !taken && med.scheduled_times.some((t) => {
+                const [h, m] = t.split(":").map(Number);
+                const scheduled = new Date();
+                scheduled.setHours(h, m, 0, 0);
+                return now > scheduled;
+              });
+
               const scheduledStr = med.scheduled_times.map((t) => {
                 const [h, m] = t.split(":").map(Number);
                 const d = new Date(); d.setHours(h, m, 0);
                 return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
               }).join(", ");
+
               return (
                 <div key={med.id} className="flex items-center justify-between py-2.5">
                   <div>
-                    <p className="font-pixel text-[7px]" style={{ color: "#6b4c35" }}>{med.medication_name}</p>
+                    <p className="font-pixel text-[7px]" style={{ color: isOverdue ? "#b85450" : "#6b4c35" }}>
+                      {isOverdue ? "⚠ " : ""}{med.medication_name}
+                    </p>
                     <p className="font-pixel text-[5px] mt-1" style={{ color: "#b8a898" }}>
                       {med.dose}{med.unit ? ` ${med.unit}` : ""} · {scheduledStr}
                     </p>
                   </div>
-                  <span className={`pill ${taken ? "pill-green" : "pill-grey"} font-pixel`} style={{ fontSize: "5px" }}>
-                    {taken ? "✓ TAKEN" : "PENDING"}
-                  </span>
+                  <div className="flex flex-col items-end gap-0.5">
+                    {taken ? (
+                      <span className="pill pill-green font-pixel" style={{ fontSize: "5px" }}>✓ TAKEN</span>
+                    ) : isOverdue ? (
+                      <span className="pill pill-red font-pixel animate-pulse" style={{ fontSize: "5px" }}>⚠ OVERDUE</span>
+                    ) : (
+                      <span className="pill pill-grey font-pixel" style={{ fontSize: "5px" }}>PENDING</span>
+                    )}
+                    {log?.taken_at && (
+                      <span className="font-pixel text-[5px]" style={{ color: "#b8a898" }}>{formatTime(log.taken_at)}</span>
+                    )}
+                  </div>
                 </div>
               );
             })}

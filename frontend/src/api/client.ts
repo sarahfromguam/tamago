@@ -11,7 +11,7 @@ import type {
   UserOut,
 } from "../types";
 
-const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const BASE = import.meta.env.VITE_API_URL ?? "";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
@@ -125,5 +125,12 @@ export const api = {
 
   getOmiLog() {
     return request<{ medication: string; logged_at: string; source: string }[]>("/api/demo/omi-log");
+  },
+
+  getSupport(uid: string) {
+    return request<{ status: string; friend?: string; caregiver?: string }>(
+      `/api/get-support?uid=${uid}`,
+      { method: "POST" }
+    );
   },
 };
