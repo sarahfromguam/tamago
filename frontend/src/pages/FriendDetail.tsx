@@ -6,8 +6,7 @@ import { api } from "../api/client";
 import { MOCK_FEED } from "../mocks/data";
 import EggCharacter from "../components/EggCharacter";
 import DimensionPanel from "../components/DimensionPanel";
-import SupportButtons from "../components/SupportButtons";
-import SupportBadge from "../components/SupportBadge";
+import { ActionList } from "../components/ActionCard";
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === "true";
 
@@ -39,7 +38,6 @@ export default function FriendDetail() {
     if (!USE_MOCKS) {
       api.logSupport(slug, phone, action).catch(() => {});
     }
-    // Optimistic update
     setState((prev) =>
       prev ? { ...prev, supported: true, support_count: prev.support_count + 1 } : prev
     );
@@ -48,8 +46,9 @@ export default function FriendDetail() {
   if (loading) {
     return (
       <div className="flex flex-col items-center gap-4 pt-16">
-        <div className="h-52 w-52 animate-pulse rounded-full bg-white/50" />
+        <div className="h-40 w-40 animate-pulse rounded-full bg-white/50" />
         <div className="h-4 w-32 animate-pulse rounded bg-white/50" />
+        <div className="h-24 w-full animate-pulse rounded-2xl bg-white/50" />
       </div>
     );
   }
@@ -57,19 +56,19 @@ export default function FriendDetail() {
   if (!state) {
     return (
       <div className="pt-16 text-center">
-        <p className="text-lg font-semibold text-gray-600">Tamago not found</p>
+        <p className="text-lg font-semibold" style={{ color: "#9a7a6a" }}>Tamago not found</p>
       </div>
     );
   }
 
-  // If supporter hasn't entered their phone yet
+  // Phone gate
   if (!phone) {
     return (
       <div className="flex flex-col items-center gap-6 pt-16">
         <EggCharacter base={state.base} isSleeping={state.is_sleeping} supported={state.supported} size="lg" />
-        <h2 className="text-xl font-bold text-gray-700">{(state as FeedItem).name ?? "Friend's Egg"}</h2>
-        <div className="w-full rounded-kawaii bg-white p-6 shadow-md">
-          <p className="mb-3 text-center text-sm font-semibold text-gray-600">
+        <h2 className="ghibli-heading text-2xl">{(state as FeedItem).name ?? "Friend's Egg"}</h2>
+        <div className="w-full rounded-2xl bg-white/50 p-6 shadow-md backdrop-blur-sm">
+          <p className="mb-3 text-center text-sm font-semibold" style={{ color: "#9a7a6a" }}>
             Enter your phone to support them
           </p>
           <input
@@ -77,11 +76,12 @@ export default function FriendDetail() {
             placeholder="+1 (555) 123-4567"
             value={phoneInput}
             onChange={(e) => setPhoneInput(e.target.value)}
-            className="mb-3 w-full rounded-xl border border-gray-200 px-4 py-3 text-center text-lg outline-none focus:border-pink-300"
+            className="mb-3 w-full rounded-xl border border-[#e8d8c8] bg-white/70 px-4 py-3 text-center text-lg outline-none focus:border-[#c9856a]"
           />
           <button
             onClick={() => { if (phoneInput.trim()) setPhone(phoneInput.trim()); }}
-            className="w-full rounded-xl bg-tamago-accent py-3 font-bold text-white transition-transform active:scale-95"
+            className="w-full rounded-xl py-3 font-bold text-white transition-transform active:scale-95"
+            style={{ backgroundColor: "#c9856a" }}
           >
             Continue
           </button>
@@ -91,17 +91,23 @@ export default function FriendDetail() {
   }
 
   const friendPhone = (state as FeedItem).phone ?? "";
+  const name = (state as FeedItem).name ?? "Friend";
 
   return (
     <div className="flex flex-col items-center gap-5">
-      <h2
-        className="ghibli-heading text-2xl"
-        style={{ color: "#c9856a" }}
-      >
-        {(state as FeedItem).name ?? "Friend's Egg"}
-      </h2>
+      {/* Sleeping banner */}
+      {state.is_sleeping && (
+        <div
+          className="w-full rounded-2xl px-4 py-3 text-center text-sm font-bold"
+          style={{ background: "#ede0f5", color: "#8060a0" }}
+        >
+          💤 {name} is resting — send a quiet text instead
+        </div>
+      )}
 
-      {/* Egg left · data right */}
+      <h2 className="ghibli-heading text-2xl">{name}</h2>
+
+      {/* Egg · dimension panel */}
       <div className="flex w-full items-center gap-4 px-2">
         <div className="flex shrink-0 items-center justify-center">
           <EggCharacter
@@ -111,31 +117,27 @@ export default function FriendDetail() {
             size="md"
           />
         </div>
-
-        {/* Technical data panel */}
         <div className="flex-1 rounded-2xl bg-white/40 p-4 backdrop-blur-sm">
           <DimensionPanel
             dimensions={state.dimensions}
-            details={(state as FeedItem & { dimension_details?: EggState["dimension_details"] }).dimension_details}
+            details={state.dimension_details}
             muted={state.is_sleeping}
           />
         </div>
       </div>
 
-      <SupportButtons
-        phone={friendPhone}
-        isSleeping={state.is_sleeping}
-        recommendedActions={state.recommended_actions}
-        onAction={handleSupport}
-      />
-
-      <SupportBadge count={state.support_count} />
-
-      {state.is_sleeping && (
-        <p className="text-xs font-semibold" style={{ color: "#b8a0d0" }}>
-          &#x1F4A4; resting — send a text instead
+      {/* Action section */}
+      <div className="w-full">
+        <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-widest" style={{ color: "#c9856a" }}>
+          How to help
         </p>
-      )}
+        <ActionList
+          phone={friendPhone}
+          isSleeping={state.is_sleeping}
+          recommendedActions={state.recommended_actions}
+          onAction={handleSupport}
+        />
+      </div>
     </div>
   );
 }

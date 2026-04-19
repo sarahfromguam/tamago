@@ -25,12 +25,18 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── Animation utilities ───────────────────────────────── */
 @layer utilities {
-  .animate-float   { animation: float   3s ease-in-out infinite; }
-  .animate-wobble  { animation: wobble  2s ease-in-out infinite; }
-  .animate-zzz     { animation: zzz     2s ease-in-out infinite; }
-  .animate-nudge-in { animation: nudgeIn 0.3s ease-out; }
+  .animate-float    { animation: float    3s ease-in-out infinite; }
+  .animate-wobble   { animation: wobble   2s ease-in-out infinite; }
+  .animate-zzz      { animation: zzz      2s ease-in-out infinite; }
+  .animate-nudge-in { animation: nudgeIn  0.3s ease-out; }
+  .animate-fade-up  { animation: fadeInUp 0.4s ease-out both; }
 }
 
 /* ── Base styles ───────────────────────────────────────── */

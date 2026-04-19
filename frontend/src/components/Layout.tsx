@@ -18,7 +18,7 @@ export default function Layout() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-md px-4 pb-24 pt-4">
+      <div className="mx-auto max-w-md px-4 pb-28 pt-4">
         <Outlet />
       </div>
       <NavBar />

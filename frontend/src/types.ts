@@ -8,15 +8,29 @@ export interface Dimensions {
 
 /** Numeric detail for one dimension, sourced from Oura */
 export interface DimensionDetail {
-  score: number;       // 0–100 Oura score
-  label: string;       // e.g. "5.8h", "HRV 42ms", "Taken"
-  sublabel?: string;   // e.g. "below target", "good recovery"
+  score: number;        // 0–100 Oura score
+  label: string;        // e.g. "5.8h", "HRV 42ms", "Taken"
+  sublabel?: string;    // e.g. "below target", "good recovery"
+  history?: number[];   // 7-day scores oldest→newest, for sparkline
 }
 
 export interface DimensionDetails {
   sleep?: DimensionDetail;
   stress?: DimensionDetail;
   meds?: DimensionDetail;
+  activity?: DimensionDetail;
+}
+
+export interface Vitals {
+  steps?: number;
+  resting_hr?: number;
+  hrv?: number;
+}
+
+export interface OmiLogEntry {
+  medication: string;
+  logged_at: string;
+  source: string;
 }
 
 export type EggBase = "thriving" | "okay" | "struggling" | "fried";
@@ -28,6 +42,7 @@ export interface EggState {
   support_count: number;
   dimensions: Dimensions;
   dimension_details?: DimensionDetails;
+  vitals?: Vitals;
   recommended_actions: string[];
 }
 
