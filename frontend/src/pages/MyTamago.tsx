@@ -254,6 +254,7 @@ export default function MyTamago() {
   const [supporting, setSupporting] = useState(false);
   const [supportStatus, setSupportStatus] = useState<"idle" | "sent" | "error">("idle");
   const [loading, setLoading] = useState(true);
+  const [transitionTo, setTransitionTo] = useState<import("../types").EggBase | null>(null);
 
   useEffect(() => {
     if (!slug) { setLoading(false); return; }
@@ -350,14 +351,44 @@ export default function MyTamago() {
       <img src="/my-stats.png" alt="My Stats" className="w-56 object-contain" style={{ marginBottom: "-8px" }} />
 
       {/* Egg */}
-      <div className="relative">
-        <EggCharacter base={state.base} isSleeping={state.is_sleeping} supported={state.supported} size="lg" />
+      <div className="relative" style={{ perspective: "600px" }}>
+        <EggCharacter
+          base={state.base}
+          isSleeping={state.is_sleeping}
+          supported={state.supported}
+          size="lg"
+          transitionTo={transitionTo}
+          onTransitionEnd={() => {
+            // Update the actual state after animation completes
+            setState((prev) => prev ? { ...prev, base: transitionTo!, dimensions: { ...prev.dimensions, meds: "green" }, dimension_details: { ...prev.dimension_details, meds: { score: 100, label: "All taken", sublabel: "on schedule", history: [] } } } : prev);
+            setTransitionTo(null);
+          }}
+        />
         {state.is_sleeping && (
           <span className="absolute -right-2 -top-2 font-pixel text-[8px] animate-pixel-pulse" style={{ color: "#7c5cbf" }}>
             ZZZ
           </span>
         )}
       </div>
+
+      {/* Demo: simulate medication taken */}
+      {state.base === "fried" && !transitionTo && (
+        <button
+          onClick={async () => {
+            await api.takeMeds().catch(() => {});
+            setTransitionTo("okay");
+          }}
+          className="border-2 border-[#2c1a0e] px-4 py-1.5 font-pixel text-[6px] transition-transform active:scale-95"
+          style={{
+            background: "#7c5cbf",
+            color: "#fff",
+            boxShadow: "2px 2px 0 0 #2c1a0e",
+            opacity: 0.7,
+          }}
+        >
+          DEMO: MEDS TAKEN
+        </button>
+      )}
 
       {/* ── Get Support button ── */}
       <div className="flex w-full justify-end">

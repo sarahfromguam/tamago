@@ -239,7 +239,16 @@ export default function HomeFeed() {
   if (loading) {
     return (
       <div>
-        <h1 className="font-pixel text-[13px] tracking-widest mb-6 text-center" style={{ color: "#2c1a0e" }}>MY CIRCLE</h1>
+        <h1
+          className="font-pixel tracking-[0.25em] leading-none mb-6 text-center"
+          style={{
+            fontSize: "22px",
+            color: "#2c1a0e",
+            textShadow: "2px 2px 0 #e8b898, 0 0 20px rgba(245,184,200,0.3)",
+          }}
+        >
+          MY CIRCLE
+        </h1>
         <div className="grid grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((i) => <div key={i} className="h-40 animate-pulse rounded-kawaii bg-white/50" />)}
         </div>
@@ -259,7 +268,46 @@ export default function HomeFeed() {
 
   return (
     <div className="flex flex-col items-center gap-0">
-      <h1 className="font-pixel text-[13px] tracking-widest mb-1" style={{ color: "#2c1a0e" }}>MY CIRCLE</h1>
+      {/* ── Header ───────────────────────────────────────────────────────── */}
+      <div className="mb-1 w-full text-center">
+        <h1
+          className="font-pixel tracking-[0.25em] leading-none"
+          style={{
+            fontSize: "22px",
+            color: "#2c1a0e",
+            textShadow: "2px 2px 0 #e8b898, 0 0 20px rgba(245,184,200,0.3)",
+          }}
+        >
+          MY CIRCLE
+        </h1>
+        <div className="mt-1 flex items-center justify-center gap-1">
+          {feed.map((_, i) => (
+            <span
+              key={i}
+              className="inline-block rounded-full"
+              style={{
+                width: "5px",
+                height: "5px",
+                background: i % 2 === 0 ? "#f5b8c8" : "#fde98e",
+              }}
+            />
+          ))}
+        </div>
+      </div>
+      {/* Add friend button – full width below title */}
+      <button
+        onClick={() => setShowAddFriend(true)}
+        className="mb-3 flex items-center justify-center gap-1.5 px-4 py-1.5 font-pixel text-[6px] transition-transform active:scale-90 hover:scale-105"
+        style={{
+          border: "2px solid #2c1a0e",
+          background: "#c4a882",
+          color: "#fff",
+          boxShadow: "2px 2px 0 0 #2c1a0e",
+        }}
+      >
+        <span style={{ fontSize: "10px", lineHeight: 1 }}>+</span>
+        ADD FRIEND
+      </button>
 
       {/* ── Pixel frame wrapper ───────────────────────────────────────────────
           Outer div = dark wood border (shows as 4px inset via padding).
@@ -342,14 +390,41 @@ export default function HomeFeed() {
         </div>
       </div>
 
-      {/* ── Add Friend button ── */}
-      <button
-        onClick={() => setShowAddFriend(true)}
-        className="mt-4 flex items-center gap-2 border-2 border-[#2c1a0e] px-5 py-2 font-pixel text-[7px] transition-transform active:scale-95"
-        style={{ color: "#6b4c35", boxShadow: "2px 2px 0 0 #2c1a0e", background: "#fffef5" }}
-      >
-        + ADD FRIEND
-      </button>
+      {/* ── Status summary strip ── */}
+      {(() => {
+        const counts = { thriving: 0, okay: 0, struggling: 0, fried: 0 };
+        feed.forEach((f) => { counts[f.base] = (counts[f.base] || 0) + 1; });
+        const pills: { label: string; color: string; count: number }[] = [];
+        if (counts.thriving) pills.push({ label: "thriving", color: "#22c55e", count: counts.thriving });
+        if (counts.okay)     pills.push({ label: "okay",     color: "#eab308", count: counts.okay });
+        if (counts.struggling) pills.push({ label: "needs support", color: "#f97316", count: counts.struggling });
+        if (counts.fried)    pills.push({ label: "needs support", color: "#ef4444", count: counts.fried + (counts.struggling ? 0 : 0) });
+        // merge struggling + fried into one "needs support" count
+        const needsSupport = counts.struggling + counts.fried;
+        const merged: { label: string; color: string; count: number }[] = [];
+        if (counts.thriving) merged.push({ label: "thriving", color: "#22c55e", count: counts.thriving });
+        if (counts.okay)     merged.push({ label: "okay",     color: "#eab308", count: counts.okay });
+        if (needsSupport)    merged.push({ label: "needs support", color: "#ef4444", count: needsSupport });
+
+        return (
+          <div className="mt-3 w-full flex items-center justify-between px-1">
+            <span className="font-pixel text-[6px] tracking-wider uppercase" style={{ color: "#9a8070" }}>
+              {feed.length} {feed.length === 1 ? "friend" : "friends"}
+            </span>
+            <div className="flex items-center gap-2">
+              {merged.map((p) => (
+                <span key={p.label} className="font-pixel text-[6px] tracking-wider uppercase flex items-center gap-1">
+                  <span
+                    className="inline-block rounded-full"
+                    style={{ width: "6px", height: "6px", background: p.color }}
+                  />
+                  <span style={{ color: p.color }}>{p.count} {p.label}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {showAddFriend && (
         <AddFriendModal

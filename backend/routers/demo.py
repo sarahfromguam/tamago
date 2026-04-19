@@ -86,14 +86,14 @@ SEEDED_PATIENTS = [
         "slug": "mia-struggling",
         "name": "Mia",
         "phone": "+15555550101",
-        "dimensions": {"sleep": "red", "stress": "yellow", "meds": "yellow"},
+        "dimensions": {"sleep": "red", "stress": "red", "meds": "yellow"},
         "dimension_details": {
-            "sleep":    {"score": 44, "label": "3.9h",        "sublabel": "deep deficit",   "history": [72, 65, 58, 50, 44, 40, 44]},
-            "stress":   {"score": 62, "label": "HRV 42ms",    "sublabel": "some tension",   "history": [70, 65, 63, 60, 62, 61, 62]},
-            "activity": {"score": 55, "label": "2,800 steps", "sublabel": "light movement", "history": [55, 52, 58, 54, 56, 53, 55]},
-            "meds":     {"score": 60, "label": "Partial",     "sublabel": "missed evening", "history": []},
+            "sleep":    {"score": 44, "label": "3.9h",     "sublabel": "deep deficit",   "history": [72, 65, 58, 50, 44, 40, 44]},
+            "stress":   {"score": 51, "label": "HRV 28ms", "sublabel": "needs rest",     "history": [70, 62, 58, 53, 51, 49, 51]},
+            "activity": {"score": 30, "label": "820 steps", "sublabel": "very sedentary", "history": [55, 48, 40, 35, 32, 28, 30]},
+            "meds":     {"score": 60, "label": "Partial",  "sublabel": "missed evening", "history": []},
         },
-        "vitals": {"steps": 2800, "resting_hr": 72, "hrv": 42},
+        "vitals": {"steps": 820, "resting_hr": 78, "hrv": 28},
         "base": "fried",
         "is_sleeping": False,
         "supported": True,
@@ -122,19 +122,46 @@ SEEDED_PATIENTS = [
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Demo override — Sarah starts as "fried" for demo, flips to "okay" on meds
 # ---------------------------------------------------------------------------
 
-def _fetch_mia() -> dict:
-    """Build a FeedItem for Mia from seeded static health data + live Supabase meds."""
-    base = next(p for p in SEEDED_PATIENTS if p["slug"] == "mia-struggling")
-    meds_state, meds_detail = _compute_meds_from_supabase(DEMO_UID)
-    return {
-        **base,
-        "dimensions": {**base["dimensions"], "meds": meds_state},
-        "dimension_details": {**base["dimension_details"], "meds": meds_detail},
-    }
+_SARAH_FRIED: dict = {
+    "slug": "sarahs-egg",
+    "name": "Sarah",
+    "phone": "",
+    "base": "fried",
+    "is_sleeping": False,
+    "supported": True,
+    "support_count": 2,
+    "dimensions": {"sleep": "red", "stress": "red", "meds": "red"},
+    "dimension_details": {
+        "sleep":    {"score": 20, "label": "2.0h",      "sublabel": "severe deficit",  "history": [65, 55, 45, 38, 30, 24, 20]},
+        "stress":   {"score": 35, "label": "HRV 22ms",  "sublabel": "high stress",     "history": [60, 52, 48, 42, 38, 35, 35]},
+        "activity": {"score": 18, "label": "340 steps",  "sublabel": "very sedentary",  "history": [50, 42, 35, 28, 22, 20, 18]},
+        "meds":     {"score": 0,  "label": "0/5 taken",  "sublabel": "none taken",      "history": []},
+    },
+    "vitals": {"steps": 340, "resting_hr": 88, "hrv": 22},
+    "recommended_actions": ["call", "food", "text"],
+}
 
+_SARAH_OKAY: dict = {
+    **_SARAH_FRIED,
+    "base": "okay",
+    "dimensions": {"sleep": "red", "stress": "red", "meds": "green"},
+    "dimension_details": {
+        **_SARAH_FRIED["dimension_details"],
+        "meds": {"score": 100, "label": "All taken", "sublabel": "on schedule", "history": []},
+    },
+    "recommended_actions": ["food", "text", "coffee"],
+}
+
+# Starts in fried state; POST /api/demo/take-meds flips it
+_demo_sarah_state: dict = dict(_SARAH_FRIED)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 async def _fetch_sarah() -> dict:
     """Build a live FeedItem for Sarah from real Oura data + Supabase meds."""
@@ -173,35 +200,37 @@ async def _fetch_oura():
 
 @router.get("/tamago", response_model=dict)
 async def get_demo_tamago():
-    """Live EggState from real Oura data for Sarah."""
-    if not DEMO_TOKEN:
-        raise HTTPException(status_code=503, detail="DEMO_OURA_TOKEN not configured")
-    try:
-        return await _fetch_sarah()
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Oura API error: {exc}")
+    """Return demo-overridden Sarah state (fried or okay)."""
+    return dict(_demo_sarah_state)
 
 
 @router.get("/feed", response_model=list)
 async def get_demo_feed():
-    """Feed: Sarah (live Oura) + seeded patients."""
-    sarah: dict = {}
-    if DEMO_TOKEN:
-        try:
-            sarah = await _fetch_sarah()
-        except Exception:
-            pass
-    patients = [_fetch_mia() if p["slug"] == "mia-struggling" else p for p in SEEDED_PATIENTS]
-    return ([sarah] if sarah else []) + patients
+    """Feed: Sarah (demo override) + seeded patients."""
+    return [dict(_demo_sarah_state)] + SEEDED_PATIENTS
+
+
+@router.post("/take-meds")
+async def take_meds():
+    """Flip Sarah from fried → okay (simulates medication taken)."""
+    global _demo_sarah_state
+    _demo_sarah_state = dict(_SARAH_OKAY)
+    return {"status": "ok", "new_base": "okay"}
+
+
+@router.post("/reset-sarah")
+async def reset_sarah():
+    """Reset Sarah back to fried state for re-demo."""
+    global _demo_sarah_state
+    _demo_sarah_state = dict(_SARAH_FRIED)
+    return {"status": "ok", "new_base": "fried"}
 
 
 @router.get("/patient/{slug}", response_model=dict)
 async def get_demo_patient(slug: str):
     """Return a single patient by slug — Sarah is live, others are seeded."""
-    if slug == "sarahs-egg":
+    if slug in ("sarahs-egg", "user_mia"):
         return await get_demo_tamago()
-    if slug in ("user_mia", "mia-struggling"):
-        return _fetch_mia()
     patient = next((p for p in SEEDED_PATIENTS if p["slug"] == slug), None)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")

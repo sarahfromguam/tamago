@@ -125,3 +125,20 @@ body::after {
   transform-origin: left;
   animation: barFill 0.6s steps(10, end) both;
 }
+
+/* Egg spin transition (Y-axis flip) */
+@keyframes egg-spin-y {
+  0%   { transform: rotateY(0deg) scale(1); }
+  40%  { transform: rotateY(90deg) scale(0.9); }
+  50%  { transform: rotateY(90deg) scale(0.9); }
+  60%  { transform: rotateY(180deg) scale(0.9); }
+  80%  { transform: rotateY(340deg) scale(1.05); }
+  90%  { transform: rotateY(355deg) scale(1.02); }
+  100% { transform: rotateY(360deg) scale(1); }
+}
+
+@keyframes sparkle-float {
+  0%   { opacity: 0; transform: translateY(0) scale(0.5); }
+  30%  { opacity: 1; transform: translateY(-10px) scale(1.2); }
+  100% { opacity: 0; transform: translateY(-30px) scale(0.8); }
+}

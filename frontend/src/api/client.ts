@@ -150,4 +150,12 @@ export const api = {
       body: JSON.stringify({ transcript, conversation_id }),
     });
   },
+
+  takeMeds() {
+    return request<{ status: string; new_base: string }>("/api/demo/take-meds", { method: "POST" });
+  },
+
+  resetSarah() {
+    return request<{ status: string; new_base: string }>("/api/demo/reset-sarah", { method: "POST" });
+  },
 };

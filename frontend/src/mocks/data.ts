@@ -5,19 +5,19 @@ export const MOCK_FEED: FeedItem[] = [
     slug: "sarahs-egg",
     name: "Sarah",
     phone: "+15551234567",
-    base: "okay",
+    base: "fried",
     is_sleeping: false,
     supported: true,
-    support_count: 3,
-    dimensions: { sleep: "yellow", stress: "yellow", meds: "grey" },
+    support_count: 2,
+    dimensions: { sleep: "red", stress: "red", meds: "red" },
     dimension_details: {
-      sleep:    { score: 79, label: "6.3h",      sublabel: "slightly short",  history: [76, 87, 96, 89, 79, 63, 79] },
-      stress:   { score: 74, label: "HRV 43ms",  sublabel: "moderate stress", history: [79, 67, 65, 74] },
-      activity: { score: 72, label: "5,230 steps", sublabel: "light movement", history: [68, 72, 80, 75, 70, 65, 72] },
-      meds:     { score: 0,  label: "—",          sublabel: "not tracked",     history: [] },
+      sleep:    { score: 20, label: "2.0h",      sublabel: "severe deficit",  history: [65, 55, 45, 38, 30, 24, 20] },
+      stress:   { score: 35, label: "HRV 22ms",  sublabel: "high stress",     history: [60, 52, 48, 42, 38, 35, 35] },
+      activity: { score: 18, label: "340 steps",  sublabel: "very sedentary",  history: [50, 42, 35, 28, 22, 20, 18] },
+      meds:     { score: 0,  label: "0/5 taken",  sublabel: "none taken",      history: [] },
     },
-    vitals: { steps: 5230, resting_hr: 56, hrv: 43 },
-    recommended_actions: ["coffee", "food", "text"],
+    vitals: { steps: 340, resting_hr: 88, hrv: 22 },
+    recommended_actions: ["call", "food", "text"],
   },
   {
     slug: "emma-thriving",
@@ -75,20 +75,20 @@ export const MOCK_FEED: FeedItem[] = [
   },
 ];
 
-// Real Oura data — Sarah, April 18 2026
+// Demo seeded state — Sarah, fried (2h sleep, high stress, no meds)
 export const MOCK_TAMAGO_STATE: EggState = {
-  base: "okay",
+  base: "fried",
   is_sleeping: false,
   supported: true,
   support_count: 2,
-  dimensions: { sleep: "yellow", stress: "yellow", meds: "grey" },
+  dimensions: { sleep: "red", stress: "red", meds: "red" },
   dimension_details: {
-    sleep:  { score: 79, label: "6.3h",   sublabel: "slightly short",    history: [85, 88, 76, 82, 71, 68, 79] },
-    stress: { score: 74, label: "HRV 43", sublabel: "moderate recovery", history: [79, 67, 65, 74, 70, 72, 74] },
-    meds:   { score: 0,  label: "—",      sublabel: "not tracked",        history: [] },
+    sleep:  { score: 20, label: "2.0h",      sublabel: "severe deficit",  history: [65, 55, 45, 38, 30, 24, 20] },
+    stress: { score: 35, label: "HRV 22ms",  sublabel: "high stress",     history: [60, 52, 48, 42, 38, 35, 35] },
+    meds:   { score: 0,  label: "0/5 taken",  sublabel: "none taken",      history: [] },
   },
-  vitals: { steps: 5230, resting_hr: 56, hrv: 43 },
-  recommended_actions: ["coffee", "food", "text"],
+  vitals: { steps: 340, resting_hr: 88, hrv: 22 },
+  recommended_actions: ["call", "food", "text"],
 };
 
 export const MOCK_SUPPORT_ACTIONS: SupportActionOut[] = [
