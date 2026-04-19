@@ -43,11 +43,11 @@ export function PixelHPBar({
     >
       {/* Header */}
       <div className="mb-2 flex items-center justify-between">
-        <span className="font-pixel text-[7px] tracking-wide" style={{ color: "#2c1a0e" }}>
+        <span className="font-pixel text-[14px] tracking-wide" style={{ color: "#2c1a0e" }}>
           {STAT_ICONS[statKey]} {label.toUpperCase()}
         </span>
         <div className="flex items-center gap-2">
-          <span className="font-pixel text-[7px]" style={{ color: colors.fill }}>
+          <span className="font-pixel text-[14px]" style={{ color: colors.fill }}>
             {state === "grey" ? "- - -" : `${score} HP`}
           </span>
           {onToggle !== undefined && (
@@ -82,10 +82,10 @@ export function PixelHPBar({
       <div className="flex items-end justify-between gap-2">
         <div>
           {detail?.label && (
-            <p className="font-pixel text-[6px]" style={{ color: "#6b4c35" }}>{detail.label}</p>
+            <p className="font-pixel text-[12px]" style={{ color: "#6b4c35" }}>{detail.label}</p>
           )}
           {detail?.sublabel && (
-            <p className="font-pixel text-[5px] mt-0.5" style={{ color: "#9a8070" }}>{detail.sublabel}</p>
+            <p className="font-pixel text-[10px] mt-0.5" style={{ color: "#9a8070" }}>{detail.sublabel}</p>
           )}
         </div>
         {history.length > 0 && (
@@ -110,7 +110,7 @@ export function PixelHPBar({
 
       <div className="mt-1.5 flex justify-end">
         <span
-          className="font-pixel text-[5px] px-1.5 py-0.5 border border-current"
+          className="font-pixel text-[10px] px-1.5 py-0.5 border border-current"
           style={{ color: dimmed ? "#9ca3af" : colors.fill }}
         >
           {dimmed ? "PRIVATE" : colors.label}
@@ -131,8 +131,8 @@ export function PixelVitals({ steps, hrv, rhr }: { steps?: number; hrv?: number;
       {items.map(({ icon, label, value }) => (
         <div key={label} className="pixel-box-sm flex-1 p-2 text-center">
           <div className="text-sm">{icon}</div>
-          <div className="font-pixel text-[5px] mt-1" style={{ color: "#9a8070" }}>{label}</div>
-          <div className="font-pixel text-[7px] mt-0.5" style={{ color: "#2c1a0e" }}>{value}</div>
+          <div className="font-pixel text-[10px] mt-1" style={{ color: "#9a8070" }}>{label}</div>
+          <div className="font-pixel text-[14px] mt-0.5" style={{ color: "#2c1a0e" }}>{value}</div>
         </div>
       ))}
     </div>

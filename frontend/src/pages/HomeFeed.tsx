@@ -21,13 +21,12 @@ function extractSlug(input: string): string {
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === "true";
 const DEMO_EGG_KEY = "tamago_demo_egg_base";
 
-/** Apply the persisted demo egg base to Mia's feed item so she stays in sync. */
+/** Apply the persisted demo egg base to Sarah's feed item so she stays in sync. */
 function applyDemoOverrides(items: FeedItem[]): FeedItem[] {
   const saved = localStorage.getItem(DEMO_EGG_KEY) as import("../types").EggBase | null;
   if (!saved) return items;
   return items.map((item) => {
-    // Match both the user's own card (sarahs-egg) and Mia's card
-    if (item.slug === "sarahs-egg" || item.slug === "mia-struggling") {
+    if (item.slug === "sarahs-egg") {
       const isOkay = saved === "okay";
       return {
         ...item,
@@ -177,8 +176,8 @@ function AddFriendModal({ onAdd, onClose }: { onAdd: (item: FeedItem) => void; o
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-[90%] max-w-sm rounded-2xl bg-[#fdf8f0] p-6 shadow-2xl"
         style={{ border: "3px solid #2c1a0e" }}>
-        <h2 className="mb-1 font-pixel text-[9px]" style={{ color: "#2c1a0e" }}>ADD A FRIEND</h2>
-        <p className="mb-4 font-pixel text-[6px]" style={{ color: "#9a8070" }}>
+        <h2 className="mb-1 font-pixel text-[18px]" style={{ color: "#2c1a0e" }}>ADD A FRIEND</h2>
+        <p className="mb-4 font-pixel text-[12px]" style={{ color: "#9a8070" }}>
           PASTE A TAMAGO LINK OR ENTER A FRIEND'S ID
         </p>
         <input
@@ -191,18 +190,18 @@ function AddFriendModal({ onAdd, onClose }: { onAdd: (item: FeedItem) => void; o
           className="mb-3 w-full border-2 border-[#2c1a0e] bg-[#fffef5] px-3 py-2 font-body text-sm outline-none focus:border-tamago-accent"
         />
         {status === "error" && (
-          <p className="mb-2 font-pixel text-[6px]" style={{ color: "#ef4444" }}>
+          <p className="mb-2 font-pixel text-[12px]" style={{ color: "#ef4444" }}>
             COULDN'T FIND THAT TAMAGO. CHECK THE ID AND TRY AGAIN.
           </p>
         )}
         <div className="flex gap-2">
           <button onClick={onClose}
-            className="flex-1 border-2 border-[#9a8070] py-2 font-pixel text-[7px] transition-transform active:scale-95"
+            className="flex-1 border-2 border-[#9a8070] py-2 font-pixel text-[14px] transition-transform active:scale-95"
             style={{ color: "#9a8070" }}>
             CANCEL
           </button>
           <button onClick={handleAdd} disabled={status === "loading"}
-            className="flex-1 border-2 border-[#2c1a0e] bg-tamago-accent py-2 font-pixel text-[7px] text-white transition-transform active:scale-95 disabled:opacity-50"
+            className="flex-1 border-2 border-[#2c1a0e] bg-tamago-accent py-2 font-pixel text-[14px] text-white transition-transform active:scale-95 disabled:opacity-50"
             style={{ boxShadow: "2px 2px 0 0 #2c1a0e" }}>
             {status === "loading" ? "FINDING…" : "ADD FRIEND"}
           </button>
@@ -211,17 +210,17 @@ function AddFriendModal({ onAdd, onClose }: { onAdd: (item: FeedItem) => void; o
         {/* Divider */}
         <div className="my-4 flex items-center gap-2">
           <div className="flex-1 border-t-2 border-dashed" style={{ borderColor: "#d4c4b0" }} />
-          <span className="font-pixel text-[6px]" style={{ color: "#9a8070" }}>OR</span>
+          <span className="font-pixel text-[12px]" style={{ color: "#9a8070" }}>OR</span>
           <div className="flex-1 border-t-2 border-dashed" style={{ borderColor: "#d4c4b0" }} />
         </div>
 
         {/* Scan QR option */}
         <button
           onClick={() => {/* TODO: QR scanner */}}
-          className="w-full flex items-center justify-center gap-2 border-2 border-[#2c1a0e] py-2.5 font-pixel text-[7px] transition-transform active:scale-95"
+          className="w-full flex items-center justify-center gap-2 border-2 border-[#2c1a0e] py-2.5 font-pixel text-[14px] transition-transform active:scale-95"
           style={{ color: "#2c1a0e", background: "#fffef5", boxShadow: "2px 2px 0 0 #2c1a0e" }}
         >
-          <span style={{ fontSize: "14px", lineHeight: 1 }}>📷</span>
+          <span style={{ fontSize: "22px", lineHeight: 1 }}>📷</span>
           SCAN QR CODE
         </button>
       </div>
@@ -367,10 +366,10 @@ export default function HomeFeed() {
           {/* Add friend button – top-right in sky */}
           <button
             onClick={() => setShowAddFriend(true)}
-            className="absolute z-10 flex items-center gap-1 px-3 py-1 font-pixel text-[6px] transition-transform active:scale-90 hover:scale-105"
+            className="absolute z-10 flex items-center gap-1 px-2 py-0.5 font-pixel text-[7px] transition-transform active:scale-90 hover:scale-105"
             style={{
-              top: "10px",
-              right: "12px",
+              top: "8px",
+              right: "10px",
               border: "2px solid #2c1a0e",
               background: "#c4a882",
               color: "#fff",

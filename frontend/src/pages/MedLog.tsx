@@ -62,10 +62,10 @@ function ScheduleRow({ med, takenLogs }: ScheduleRowProps) {
       <div className="flex items-center gap-3 min-w-0">
         <span className="text-2xl">💊</span>
         <div className="min-w-0">
-          <p className="font-bold text-sm truncate" style={{ color: "#6b4c35" }}>
+          <p className="font-bold text-base truncate" style={{ color: "#6b4c35" }}>
             {med.medication_name}
           </p>
-          <p className="text-xs" style={{ color: "#b8a898" }}>
+          <p className="text-base" style={{ color: "#b8a898" }}>
             {med.dose}{med.unit ? ` ${med.unit}` : ""} · {med.scheduled_times.map(formatScheduledTime).join(", ")}
           </p>
         </div>
@@ -73,7 +73,7 @@ function ScheduleRow({ med, takenLogs }: ScheduleRowProps) {
       <div className="flex flex-col items-end gap-1 shrink-0">
         <StatusPill taken={taken} />
         {log && (
-          <span className="text-[10px]" style={{ color: "#b8a898" }}>
+          <span className="text-[16px]" style={{ color: "#b8a898" }}>
             {formatTime(log.taken_at)}
           </span>
         )}
@@ -92,11 +92,11 @@ function LogRow({ log }: LogRowProps) {
       <div className="flex items-center gap-3 min-w-0">
         <span className="text-xl">🕐</span>
         <div className="min-w-0">
-          <p className="font-bold text-sm truncate" style={{ color: "#6b4c35" }}>
+          <p className="font-bold text-base truncate" style={{ color: "#6b4c35" }}>
             {log.medication_name}
           </p>
           {log.notes && (
-            <p className="text-xs italic truncate" style={{ color: "#b8a898" }}>
+            <p className="text-base italic truncate" style={{ color: "#b8a898" }}>
               "{log.notes}"
             </p>
           )}
@@ -104,7 +104,7 @@ function LogRow({ log }: LogRowProps) {
       </div>
       <div className="flex flex-col items-end gap-1 shrink-0">
         <SourceBadge source={log.source} confidence={log.confidence_score} />
-        <span className="text-[10px]" style={{ color: "#b8a898" }}>
+        <span className="text-[16px]" style={{ color: "#b8a898" }}>
           {formatDateTime(log.taken_at)}
         </span>
       </div>
@@ -146,7 +146,7 @@ export default function MedLog() {
       {/* Today summary bar */}
       <div className="rounded-kawaii bg-white shadow-md p-4 flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold" style={{ color: "#b8a898" }}>TODAY</p>
+          <p className="text-base font-semibold" style={{ color: "#b8a898" }}>TODAY</p>
           <p className="font-bold text-lg" style={{ color: "#6b4c35" }}>
             {new Date().toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })}
           </p>
@@ -156,15 +156,15 @@ export default function MedLog() {
             <p className="text-2xl font-extrabold" style={{ color: takenCount === schedule.length && schedule.length > 0 ? "#3a7a4a" : "#c9856a" }}>
               {takenCount}/{schedule.length}
             </p>
-            <p className="text-xs" style={{ color: "#b8a898" }}>doses taken</p>
+            <p className="text-base" style={{ color: "#b8a898" }}>doses taken</p>
           </div>
         )}
       </div>
 
       {/* Today's schedule */}
       <div className="rounded-kawaii bg-white shadow-md p-4">
-        <h2 className="text-sm font-bold mb-1" style={{ color: "#8b7060" }}>📋 Today's Schedule</h2>
-        <p className="text-[10px] mb-3" style={{ color: "#b8a898" }}>scheduled medications vs. logged doses</p>
+        <h2 className="text-base font-bold mb-1" style={{ color: "#8b7060" }}>📋 Today's Schedule</h2>
+        <p className="text-[16px] mb-3" style={{ color: "#b8a898" }}>scheduled medications vs. logged doses</p>
 
         {loading ? (
           <div className="space-y-3">
@@ -173,7 +173,7 @@ export default function MedLog() {
             ))}
           </div>
         ) : schedule.length === 0 ? (
-          <p className="text-center text-sm py-4" style={{ color: "#b8a898" }}>No schedule set up yet</p>
+          <p className="text-center text-base py-4" style={{ color: "#b8a898" }}>No schedule set up yet</p>
         ) : (
           schedule.map((med) => (
             <ScheduleRow key={med.id} med={med} takenLogs={todayLogs} />
@@ -183,8 +183,8 @@ export default function MedLog() {
 
       {/* Recent log */}
       <div className="rounded-kawaii bg-white shadow-md p-4">
-        <h2 className="text-sm font-bold mb-1" style={{ color: "#8b7060" }}>🎙 Recent Detections</h2>
-        <p className="text-[10px] mb-3" style={{ color: "#b8a898" }}>detected from Omi voice transcripts</p>
+        <h2 className="text-base font-bold mb-1" style={{ color: "#8b7060" }}>🎙 Recent Detections</h2>
+        <p className="text-[16px] mb-3" style={{ color: "#b8a898" }}>detected from Omi voice transcripts</p>
 
         {loading ? (
           <div className="space-y-3">
@@ -193,7 +193,7 @@ export default function MedLog() {
             ))}
           </div>
         ) : recentLogs.length === 0 ? (
-          <p className="text-center text-sm py-4" style={{ color: "#b8a898" }}>No logs yet</p>
+          <p className="text-center text-base py-4" style={{ color: "#b8a898" }}>No logs yet</p>
         ) : (
           recentLogs.map((log) => <LogRow key={log.id} log={log} />)
         )}

@@ -76,7 +76,7 @@ export default function DimensionPanel({ dimensions, details, muted }: Props) {
           <div key={key} className="flex flex-col gap-0.5">
             {/* Label row */}
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold tracking-wide whitespace-nowrap" style={{ color: "#8b7060" }}>
+              <span className="text-[18px] font-bold tracking-wide whitespace-nowrap" style={{ color: "#8b7060" }}>
                 {icon} {label}
               </span>
               <div className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export default function DimensionPanel({ dimensions, details, muted }: Props) {
                   <Sparkline history={history} color={barColor} />
                 )}
                 {detail && (
-                  <span className="font-mono text-[11px] font-bold whitespace-nowrap" style={{ color: textColor }}>
+                  <span className="font-mono text-[18px] font-bold whitespace-nowrap" style={{ color: textColor }}>
                     {detail.label}
                   </span>
                 )}
@@ -103,7 +103,7 @@ export default function DimensionPanel({ dimensions, details, muted }: Props) {
 
             {/* Sub-label */}
             {detail?.sublabel && (
-              <span className="text-[9px] tracking-wide" style={{ color: "#b8a898" }}>
+              <span className="text-[16px] tracking-wide" style={{ color: "#b8a898" }}>
                 {detail.sublabel}
               </span>
             )}

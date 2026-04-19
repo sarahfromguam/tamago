@@ -97,11 +97,11 @@ export function ActionCard({ action, phone, isSleeping, recommended, onAction }:
         <span className="text-3xl leading-none">{def.icon}</span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold" style={{ color: "#5a3e30" }}>{def.label}</p>
-          <p className="text-[11px]" style={{ color: "#b8a898" }}>{def.sublabel}</p>
+          <p className="text-[18px]" style={{ color: "#b8a898" }}>{def.sublabel}</p>
         </div>
         {recommended && !blocked && (
           <span
-            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+            className="shrink-0 rounded-full px-2 py-0.5 text-[16px] font-bold"
             style={{ background: "#fde8d8", color: "#c9856a" }}
           >
             suggested

@@ -16,7 +16,7 @@ export default function NavBar() {
   const [open, setOpen] = useState(false);
   const active = "text-[#c47a3a]";
   const inactive = "text-[#6b4c35]/60 hover:text-[#6b4c35]";
-  const itemBase = "flex items-center gap-2.5 px-4 py-2.5 font-pixel text-[7px] tracking-wide transition-all duration-150 w-full";
+  const itemBase = "flex items-center gap-2.5 px-4 py-2.5 font-pixel text-[14px] tracking-wide transition-all duration-150 w-full";
 
   return (
     <>

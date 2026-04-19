@@ -44,13 +44,13 @@ function CollapsibleTranscript({ text }: { text: string }) {
 
   return (
     <div className="mb-3">
-      <p className="font-mono text-sm leading-relaxed whitespace-pre-wrap break-words" style={{ color: T.muted }}>
+      <p className="font-mono text-base leading-relaxed whitespace-pre-wrap break-words" style={{ color: T.muted }}>
         {display}
       </p>
       {long && (
         <button
           onClick={() => setExpanded(e => !e)}
-          className="font-mono text-sm mt-1 hover:underline"
+          className="font-mono text-base mt-1 hover:underline"
           style={{ color: T.cyan }}
         >
           {expanded ? "[ collapse ]" : "[ show full ]"}
@@ -65,17 +65,17 @@ function PipelineSteps({ steps }: { steps: OmiPipelineStep[] }) {
     <div className="mt-3 flex flex-col gap-1 border-l-2 pl-3" style={{ borderColor: T.border }}>
       {steps.map((s, i) => (
         <div key={i} className="flex items-baseline gap-2">
-          <span className="font-mono text-sm w-3 flex-shrink-0" style={{ color: T.muted }}>
+          <span className="font-mono text-base w-3 flex-shrink-0" style={{ color: T.muted }}>
             {STEP_ICON[s.step] ?? "·"}
           </span>
-          <span className="font-mono text-sm" style={{ color: T.text }}>{s.label}</span>
+          <span className="font-mono text-base" style={{ color: T.text }}>{s.label}</span>
           {s.result && (
-            <span className="font-mono text-sm" style={{ color: RESULT_COLOR[s.result] ?? T.muted }}>
+            <span className="font-mono text-base" style={{ color: RESULT_COLOR[s.result] ?? T.muted }}>
               [{s.result}]
             </span>
           )}
           {s.detail && (
-            <span className="font-mono text-sm truncate" style={{ color: T.muted }}>{s.detail}</span>
+            <span className="font-mono text-base truncate" style={{ color: T.muted }}>{s.detail}</span>
           )}
         </div>
       ))}
@@ -112,21 +112,21 @@ function ConversationCard({ conv, live }: { conv: OmiConversation; live?: boolea
       <div className="flex items-center justify-between mb-2 gap-2">
         <div className="flex items-center gap-2">
           {live && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: T.green }} />}
-          <span className="font-mono text-sm" style={{ color: T.muted }}>{ts}</span>
+          <span className="font-mono text-base" style={{ color: T.muted }}>{ts}</span>
         </div>
-        <span className="font-mono text-sm" style={{ color: cfg.color }}>{cfg.label}</span>
+        <span className="font-mono text-base" style={{ color: cfg.color }}>{cfg.label}</span>
       </div>
 
       {/* Transcript */}
       {conv.transcript ? (
         <CollapsibleTranscript text={conv.transcript} />
       ) : (
-        <p className="font-mono text-sm mb-3" style={{ color: T.muted }}>[no transcript]</p>
+        <p className="font-mono text-base mb-3" style={{ color: T.muted }}>[no transcript]</p>
       )}
 
       {/* Match */}
       {conv.match && (
-        <p className="font-mono text-sm mb-2" style={{ color: T.green }}>
+        <p className="font-mono text-base mb-2" style={{ color: T.green }}>
           + {conv.match.medication}{conv.match.quote ? ` · "${conv.match.quote}"` : ""}
         </p>
       )}
@@ -136,7 +136,7 @@ function ConversationCard({ conv, live }: { conv: OmiConversation; live?: boolea
         <button
           onClick={run}
           disabled={running}
-          className="font-mono text-sm px-3 py-1 rounded hover:opacity-80 disabled:opacity-40 transition-opacity"
+          className="font-mono text-base px-3 py-1 rounded hover:opacity-80 disabled:opacity-40 transition-opacity"
           style={{ background: "#21262d", color: T.cyan, border: `1px solid ${T.border}` }}
         >
           {running ? "running…" : "▶ run pipeline"}
@@ -144,6 +144,79 @@ function ConversationCard({ conv, live }: { conv: OmiConversation; live?: boolea
       )}
 
       {result && <PipelineSteps steps={result.steps} />}
+    </div>
+  );
+}
+
+function DemoInject({ onSent }: { onSent: () => void }) {
+  const [text, setText] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  async function send() {
+    if (!text.trim()) return;
+    setStatus("sending");
+    try {
+      await api.simulateOmiWebhook(text.trim());
+      setStatus("sent");
+      setText("");
+      onSent();
+    } catch {
+      setStatus("error");
+    } finally {
+      setTimeout(() => setStatus("idle"), 3000);
+    }
+  }
+
+  return (
+    <div className="rounded p-3" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+      <p className="font-mono text-base mb-2" style={{ color: T.muted }}>// simulate omi webhook</p>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="e.g. I just took my Metformin"
+        rows={2}
+        className="w-full rounded p-2 font-mono text-base resize-none focus:outline-none"
+        style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}` }}
+      />
+      <button
+        onClick={send}
+        disabled={!text.trim() || status === "sending"}
+        className="mt-2 font-mono text-base px-3 py-1 rounded hover:opacity-80 disabled:opacity-40 transition-opacity"
+        style={{ background: "#21262d", color: T.cyan, border: `1px solid ${T.border}` }}
+      >
+        {status === "sending" ? "sending…" : status === "sent" ? "✓ sent" : status === "error" ? "✗ failed" : "▶ send webhook"}
+      </button>
+    </div>
+  );
+}
+
+function LiveEntry({ conv }: { conv: OmiConversation }) {
+  const cfg = PATH_CONFIG[conv.path] ?? PATH_CONFIG.none;
+  const ts = conv.received_at
+    ? new Date(conv.received_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    : conv.started_at
+    ? new Date(conv.started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    : "??:??:??";
+
+  return (
+    <div className="rounded p-3" style={{ background: T.card, border: `1px solid ${T.green}40` }}>
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: T.green }} />
+          <span className="font-mono text-base" style={{ color: T.muted }}>{ts}</span>
+        </div>
+        <span className="font-mono text-base" style={{ color: cfg.color }}>{cfg.label}</span>
+      </div>
+      {conv.transcript ? (
+        <CollapsibleTranscript text={conv.transcript} />
+      ) : (
+        <p className="font-mono text-base" style={{ color: T.muted }}>[no transcript]</p>
+      )}
+      {conv.match && (
+        <p className="font-mono text-base" style={{ color: T.green }}>
+          + {conv.match.medication}{conv.match.quote ? ` · "${conv.match.quote}"` : ""}
+        </p>
+      )}
     </div>
   );
 }
@@ -160,6 +233,7 @@ function DemoControls() {
   );
   const [friendStatus, setFriendStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [caregiverStatus, setCaregiverStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [curlStatus, setCurlStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   const handleMedsTaken = async () => {
     if (eggBase !== "fried") return;
@@ -190,6 +264,18 @@ function DemoControls() {
     }
   };
 
+  const handleFakeCurl = async () => {
+    setCurlStatus("sending");
+    try {
+      await api.simulateOmiWebhook("I just took my Metformin this morning with breakfast");
+      setCurlStatus("sent");
+    } catch {
+      setCurlStatus("error");
+    } finally {
+      setTimeout(() => setCurlStatus("idle"), 4000);
+    }
+  };
+
   const handleAlertCaregiver = async () => {
     setCaregiverStatus("sending");
     try {
@@ -216,7 +302,7 @@ function DemoControls() {
 
   return (
     <div className="pixel-box p-3">
-      <h2 className="font-pixel text-[9px] tracking-widest mb-3" style={{ color: "#2c1a0e" }}>
+      <h2 className="font-pixel text-[18px] tracking-widest mb-3" style={{ color: "#2c1a0e" }}>
         DEMO CONTROLS
       </h2>
 
@@ -225,7 +311,7 @@ function DemoControls() {
         {eggBase === "fried" ? (
           <button
             onClick={handleMedsTaken}
-            className="flex-1 border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[6px] transition-transform active:scale-95"
+            className="flex-1 border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[12px] transition-transform active:scale-95"
             style={btnStyle("#7c5cbf")}
           >
             💊 MEDS TAKEN
@@ -233,7 +319,7 @@ function DemoControls() {
         ) : (
           <button
             onClick={handleReset}
-            className="flex-1 border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[6px] transition-transform active:scale-95"
+            className="flex-1 border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[12px] transition-transform active:scale-95"
             style={btnStyle("#9a8070")}
           >
             ↺ RESET TO FRIED
@@ -242,11 +328,11 @@ function DemoControls() {
       </div>
 
       {/* Support buttons row */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 mb-2">
         <button
           onClick={handleAlertFriend}
           disabled={friendStatus === "sending"}
-          className="flex-1 border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[6px] transition-transform active:scale-95 disabled:opacity-60"
+          className="flex-1 border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[12px] transition-transform active:scale-95 disabled:opacity-60"
           style={btnStyle(statusColor(friendStatus))}
         >
           {statusLabel(friendStatus, "💬 ALERT FRIEND")}
@@ -254,12 +340,22 @@ function DemoControls() {
         <button
           onClick={handleAlertCaregiver}
           disabled={caregiverStatus === "sending"}
-          className="flex-1 border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[6px] transition-transform active:scale-95 disabled:opacity-60"
+          className="flex-1 border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[12px] transition-transform active:scale-95 disabled:opacity-60"
           style={btnStyle(statusColor(caregiverStatus))}
         >
           {statusLabel(caregiverStatus, "🆘 ALERT CAREGIVER")}
         </button>
       </div>
+
+      {/* Fake curl row */}
+      <button
+        onClick={handleFakeCurl}
+        disabled={curlStatus === "sending"}
+        className="w-full border-2 border-[#2c1a0e] px-3 py-1.5 font-pixel text-[12px] transition-transform active:scale-95 disabled:opacity-60"
+        style={btnStyle(statusColor(curlStatus))}
+      >
+        {statusLabel(curlStatus, "📡 FAKE CURL → /webhook/omi")}
+      </button>
     </div>
   );
 }
@@ -291,18 +387,18 @@ export default function DemoConsole() {
 
       {/* Pipeline diagram */}
       <div className="pixel-box p-3">
-        <h1 className="font-pixel text-[9px] tracking-widest mb-3" style={{ color: "#2c1a0e" }}>
-          OMI PIPELINE
+        <h1 className="font-pixel text-[18px] tracking-widest mb-3" style={{ color: "#2c1a0e" }}>
+          DEMO
         </h1>
-        <p className="font-mono text-sm mt-1" style={{ color: T.muted }}>
-          real-time conversation processing
+        <p className="font-mono text-base mt-1" style={{ color: T.muted }}>
+          simulate omi webhook events
         </p>
       </div>
 
       <DemoInject onSent={() => api.getWebhookLog().then(setLiveLog).catch(() => {})} />
 
       {/* Pipeline diagram */}
-      <div className="rounded p-3 mb-6 font-mono text-sm" style={{ background: T.card, border: `1px solid ${T.border}` }}>
+      <div className="rounded p-3 mb-6 font-mono text-base" style={{ background: T.card, border: `1px solid ${T.border}` }}>
         <p className="mb-2" style={{ color: T.muted }}>// flow</p>
         <div className="flex items-center gap-1.5 flex-wrap">
           {[
@@ -325,13 +421,13 @@ export default function DemoConsole() {
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-3">
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: liveLog.length > 0 ? T.green : T.muted }} />
-          <span className="font-mono text-sm font-semibold" style={{ color: T.text }}>live</span>
+          <span className="font-mono text-base font-semibold" style={{ color: T.text }}>live</span>
           {liveLog.length > 0 && (
-            <span className="font-mono text-sm" style={{ color: T.muted }}>{liveLog.length} received</span>
+            <span className="font-mono text-base" style={{ color: T.muted }}>{liveLog.length} received</span>
           )}
         </div>
         {liveLog.length === 0 ? (
-          <p className="font-mono text-sm" style={{ color: T.muted }}>waiting for webhook…</p>
+          <p className="font-mono text-base" style={{ color: T.muted }}>waiting for webhook…</p>
         ) : (
           <div className="flex flex-col gap-2">
             {liveLog.map((conv) => (
@@ -343,11 +439,11 @@ export default function DemoConsole() {
 
       {/* Historical */}
       <div>
-        <p className="font-mono text-sm font-semibold mb-3" style={{ color: T.text }}>recent</p>
-        {loading && <p className="font-mono text-sm" style={{ color: T.muted }}>loading…</p>}
-        {error && <p className="font-mono text-sm" style={{ color: T.red }}>{error}</p>}
+        <p className="font-mono text-base font-semibold mb-3" style={{ color: T.text }}>recent</p>
+        {loading && <p className="font-mono text-base" style={{ color: T.muted }}>loading…</p>}
+        {error && <p className="font-mono text-base" style={{ color: T.red }}>{error}</p>}
         {!loading && !error && conversations.length === 0 && (
-          <p className="font-mono text-sm" style={{ color: T.muted }}>no conversations found</p>
+          <p className="font-mono text-base" style={{ color: T.muted }}>no conversations found</p>
         )}
         <div className="flex flex-col gap-2">
           {conversations.map((conv) => (

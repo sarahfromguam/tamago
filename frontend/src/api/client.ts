@@ -172,4 +172,26 @@ export const api = {
   resetSarah() {
     return request<{ status: string; new_base: string }>("/api/demo/reset-sarah", { method: "POST" });
   },
+
+  simulateOmiWebhook(transcript: string, uid = "user_mia") {
+    const id = `sim-${Date.now()}`;
+    const now = new Date().toISOString();
+    const url = `https://backed-research-material.ngrok-free.dev/webhook/omi?uid=${uid}`;
+    return fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id,
+        created_at: now,
+        started_at: now,
+        finished_at: now,
+        source: "demo_console",
+        transcript_segments: [{ text: transcript, speaker: "SPEAKER_00", is_user: true, start: 0, end: 1 }],
+        discarded: false,
+      }),
+    }).then(res => {
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      return res.json();
+    });
+  },
 };

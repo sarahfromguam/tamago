@@ -22,9 +22,9 @@ export default function TamagoCard({ item }: Props) {
       className="group flex flex-col items-center gap-0 transition-all duration-200 hover:-translate-y-2 active:scale-95"
     >
       {/* Floating name tag + HP bar — RPG character label */}
-      <div className="flex flex-col items-center gap-[3px]">
+      <div className="flex flex-col items-center gap-[2px]">
         <span
-          className="rounded-sm px-2 py-[2px] text-[10px] font-bold tracking-wide leading-none"
+          className="rounded-sm px-1.5 py-[1px] text-[10px] font-bold tracking-wide leading-none"
           style={{
             color: "#2a1a08",
             background: "rgba(255,248,220,0.92)",
@@ -35,14 +35,14 @@ export default function TamagoCard({ item }: Props) {
           {item.name}
         </span>
 
-        {/* Segmented HP bar */}
-        <div className="flex items-center gap-1">
+        {/* Segmented HP bar — same width as name tag */}
+        <div className="flex items-center gap-[3px]">
           <span className="text-[6px] font-bold tracking-[0.18em] uppercase" style={{ color: "#b8a898" }}>HP</span>
-          <div className="flex gap-[2px]">
+          <div className="flex gap-[1px]">
             {Array.from({ length: 10 }, (_, i) => (
               <div
                 key={i}
-                className="h-[4px] w-[5px] rounded-[1px]"
+                className="h-[3px] w-[4px] rounded-[1px]"
                 style={{
                   backgroundColor: i < bars ? color : "rgba(0,0,0,0.09)",
                   boxShadow: i < bars ? `0 0 3px ${color}99` : "none",
@@ -65,13 +65,13 @@ export default function TamagoCard({ item }: Props) {
         {item.is_sleeping && (
           <div className="absolute -top-1 -right-3 flex flex-col items-start" style={{ pointerEvents: "none" }}>
             <span className="font-pixel animate-pixel-pulse" style={{
-              fontSize: "10px",
+              fontSize: "18px",
               color: "#1e3a6e",
               textShadow: "0 0 4px rgba(30,58,110,0.4)",
               lineHeight: 1,
             }}>Z</span>
             <span className="font-pixel animate-pixel-pulse" style={{
-              fontSize: "7px",
+              fontSize: "14px",
               color: "#2b4f8a",
               textShadow: "0 0 3px rgba(43,79,138,0.35)",
               lineHeight: 1,
@@ -79,7 +79,7 @@ export default function TamagoCard({ item }: Props) {
               animationDelay: "0.3s",
             }}>Z</span>
             <span className="font-pixel animate-pixel-pulse" style={{
-              fontSize: "5px",
+              fontSize: "10px",
               color: "#3d6bab",
               textShadow: "0 0 2px rgba(61,107,171,0.3)",
               lineHeight: 1,

@@ -56,7 +56,7 @@ export default function FriendDetail() {
   if (!state) {
     return (
       <div className="pt-16 text-center">
-        <p className="font-pixel text-[8px]" style={{ color: "#9a8070" }}>TAMAGO NOT FOUND</p>
+        <p className="font-pixel text-[16px]" style={{ color: "#9a8070" }}>TAMAGO NOT FOUND</p>
       </div>
     );
   }
@@ -66,11 +66,11 @@ export default function FriendDetail() {
     return (
       <div className="flex flex-col items-center gap-5 pt-12">
         <EggCharacter base={state.base} isSleeping={state.is_sleeping} supported={state.supported} size="lg" />
-        <p className="font-pixel text-[9px]" style={{ color: "#2c1a0e" }}>
+        <p className="font-pixel text-[18px]" style={{ color: "#2c1a0e" }}>
           {((state as FeedItem).name ?? "FRIEND").toUpperCase()}'S TAMAGO
         </p>
         <div className="pixel-box w-full p-5">
-          <p className="mb-3 font-pixel text-[6px] text-center" style={{ color: "#9a8070" }}>
+          <p className="mb-3 font-pixel text-[12px] text-center" style={{ color: "#9a8070" }}>
             ENTER YOUR PHONE TO SUPPORT THEM
           </p>
           <input
@@ -80,7 +80,7 @@ export default function FriendDetail() {
           />
           <button
             onClick={() => { if (phoneInput.trim()) setPhone(phoneInput.trim()); }}
-            className="w-full border-2 border-[#2c1a0e] bg-tamago-accent py-2 font-pixel text-[7px] text-white transition-transform active:scale-95"
+            className="w-full border-2 border-[#2c1a0e] bg-tamago-accent py-2 font-pixel text-[14px] text-white transition-transform active:scale-95"
             style={{ boxShadow: "2px 2px 0 0 #2c1a0e" }}
           >
             CONTINUE
@@ -117,31 +117,34 @@ export default function FriendDetail() {
       {/* Sleeping banner */}
       {state.is_sleeping && (
         <div
-          className="w-full px-4 py-2 text-center font-pixel text-[7px]"
+          className="w-full px-4 py-2 text-center font-pixel text-[14px]"
           style={{ background: "#ede0f5", color: "#8060a0", border: "2px solid #c8a0e0" }}
         >
           💤 {name} IS RESTING — SEND A QUIET TEXT
         </div>
       )}
 
-      {/* Name + egg + action buttons */}
-      <div className="flex w-full items-center gap-4">
-        <EggCharacter
-          base={state.base}
-          isSleeping={state.is_sleeping}
-          supported={state.supported}
-          size="md"
-        />
-        <div className="flex flex-col gap-2">
-          <p className="font-pixel text-[10px]" style={{ color: nameColor }}>{name}</p>
-          <p className="font-pixel text-[6px]" style={{ color: "#9a8070" }}>
+      {/* Name + egg + actions side by side */}
+      <div className="w-full">
+        <div className="text-center mb-1">
+          <p className="font-pixel text-[18px]" style={{ color: nameColor }}>{name}</p>
+          <p className="font-pixel text-[10px]" style={{ color: "#9a8070" }}>
             {state.base.toUpperCase()}
           </p>
+        </div>
+        <div className="flex items-center justify-center gap-3">
+          <EggCharacter
+            base={state.base}
+            isSleeping={state.is_sleeping}
+            supported={state.supported}
+            size="lg"
+          />
           <SupportButtons
             phone={friendPhone}
             isSleeping={state.is_sleeping}
             recommendedActions={state.recommended_actions}
             onAction={handleSupport}
+            compact
           />
         </div>
       </div>

@@ -7,6 +7,7 @@ interface Props {
   isSleeping: boolean;
   recommendedActions: string[];
   onAction: (action: ActionType) => void;
+  compact?: boolean;
 }
 
 const ACTION_CONFIG: Record<ActionType, { icon: string; label: string; scheme?: string }> = {
@@ -20,7 +21,7 @@ const ACTION_CONFIG: Record<ActionType, { icon: string; label: string; scheme?: 
 
 const ALL_ACTIONS: ActionType[] = ["text", "call", "facetime", "coffee", "food"];
 
-export default function SupportButtons({ phone, isSleeping, recommendedActions, onAction }: Props) {
+export default function SupportButtons({ phone, isSleeping, recommendedActions, onAction, compact }: Props) {
   const [showNudge, setShowNudge] = useState(false);
 
   const ordered = [
@@ -50,18 +51,53 @@ export default function SupportButtons({ phone, isSleeping, recommendedActions, 
     }
   };
 
+  if (compact) {
+    return (
+      <>
+        <div className="grid grid-cols-2 gap-1">
+          {ordered.map((action) => {
+            const cfg = ACTION_CONFIG[action];
+            const disabled = isSleeping && disabledWhenSleeping.includes(action);
+            const isRecommended = recommendedActions.includes(action);
+            return (
+              <div key={action} className="relative">
+                {isRecommended && !disabled && (
+                  <span className="absolute -top-1 -right-1 text-[8px] leading-none z-10">⭐</span>
+                )}
+                <button
+                  onClick={() => handleTap(action)}
+                  className={`w-full flex items-center gap-1.5 border-2 border-[#2c1a0e] px-2 py-1 font-pixel text-[7px] transition-transform active:scale-95 ${
+                    disabled ? "opacity-30 grayscale" : ""
+                  }`}
+                  style={{
+                    background: isRecommended && !disabled ? "#fff8dc" : "#fffef5",
+                    color: "#6b4c35",
+                    boxShadow: "1px 1px 0 0 #2c1a0e",
+                  }}
+                >
+                  <span className="text-sm leading-none">{cfg.icon}</span>
+                  {cfg.label}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        {showNudge && <NudgeToast onDismiss={() => setShowNudge(false)} />}
+      </>
+    );
+  }
+
   return (
     <>
       <div className="flex justify-center gap-3">
         {ordered.map((action) => {
           const cfg = ACTION_CONFIG[action];
           const disabled = isSleeping && disabledWhenSleeping.includes(action);
-
           const isRecommended = recommendedActions.includes(action);
           return (
             <div key={action} className="relative flex flex-col items-center">
               {isRecommended && !disabled && (
-                <span className="absolute -top-2 -right-2 text-[11px] leading-none z-10">⭐</span>
+                <span className="absolute -top-1.5 -right-1.5 leading-none z-10 text-[20px]">⭐</span>
               )}
               <button
                 onClick={() => handleTap(action)}
@@ -70,7 +106,7 @@ export default function SupportButtons({ phone, isSleeping, recommendedActions, 
                 } ${isRecommended && !disabled ? "ring-2 ring-yellow-300" : ""}`}
               >
                 <span className="text-2xl">{cfg.icon}</span>
-                <span className="text-[10px] font-semibold text-gray-500">{cfg.label}</span>
+                <span className="text-[16px] font-semibold text-gray-500">{cfg.label}</span>
               </button>
             </div>
           );

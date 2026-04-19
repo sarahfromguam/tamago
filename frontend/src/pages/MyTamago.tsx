@@ -31,7 +31,7 @@ function CircleSection({ slug }: { slug: string }) {
 
   return (
     <div className="pixel-box w-full p-4">
-      <h3 className="mb-3 font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>👥 MY CIRCLE</h3>
+      <h3 className="mb-3 font-pixel text-[14px]" style={{ color: "#2c1a0e" }}>👥 MY CIRCLE</h3>
       <div className="flex flex-col gap-2">
         {circle.map((m) => (
           <div key={m.phone} className="flex items-center gap-3">
@@ -42,11 +42,11 @@ function CircleSection({ slug }: { slug: string }) {
               {m.name[0]}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>{m.name}</p>
-              <p className="font-pixel text-[5px]" style={{ color: "#9a8070" }}>{m.relationship}</p>
+              <p className="font-pixel text-[14px]" style={{ color: "#2c1a0e" }}>{m.name}</p>
+              <p className="font-pixel text-[10px]" style={{ color: "#9a8070" }}>{m.relationship}</p>
             </div>
             <span
-              className="font-pixel text-[5px] px-1.5 py-0.5 border"
+              className="font-pixel text-[10px] px-1.5 py-0.5 border"
               style={{ color: TIER_COLOR[m.tier] ?? "#9a8070", borderColor: TIER_COLOR[m.tier] ?? "#9a8070" }}
             >
               {TIER_LABEL[m.tier] ?? "CIRCLE"}
@@ -78,7 +78,7 @@ const SEED_SUPPORTERS: Supporter[] = [
 function SupportersSection() {
   return (
     <div className="pixel-box w-full p-4">
-      <h3 className="mb-3 font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>
+      <h3 className="mb-3 font-pixel text-[14px]" style={{ color: "#2c1a0e" }}>
         💛 MY SUPPORTERS
       </h3>
       <div className="flex flex-col gap-2.5">
@@ -91,7 +91,7 @@ function SupportersSection() {
               {s.emoji}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>{s.name}</p>
+              <p className="font-pixel text-[14px]" style={{ color: "#2c1a0e" }}>{s.name}</p>
               <div className="flex items-center gap-1 mt-0.5">
                 {s.actions.map((a, i) => (
                   <span key={i} className="text-xs">{a}</span>
@@ -99,7 +99,7 @@ function SupportersSection() {
               </div>
             </div>
             <span
-              className="font-pixel text-[5px] px-1.5 py-0.5"
+              className="font-pixel text-[10px] px-1.5 py-0.5"
               style={s.role === "caregiver"
                 ? { color: "#fff", backgroundColor: "#c9856a", border: "1px solid #a06840" }
                 : { color: "#9a8070", backgroundColor: "#9a807018", border: "1px solid #9a807040" }
@@ -110,10 +110,10 @@ function SupportersSection() {
           </div>
         ))}
       </div>
-      <p className="mt-3 text-center font-pixel text-[5px]" style={{ color: "#b8a898" }}>
+      <p className="mt-3 text-center font-pixel text-[10px]" style={{ color: "#b8a898" }}>
         {SEED_SUPPORTERS.length} PEOPLE SUPPORTING YOU
       </p>
-      <p className="mt-1 text-center font-pixel text-[4.5px]" style={{ color: "#c9856a" }}>
+      <p className="mt-1 text-center font-pixel text-[9px]" style={{ color: "#c9856a" }}>
         CAREGIVERS GET TEXTED WHEN THINGS ARE DIRE
       </p>
     </div>
@@ -131,8 +131,8 @@ function QRShare({ slug }: { slug: string }) {
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between"
       >
-        <h3 className="font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>📱 SHARE YOUR TAMAGO</h3>
-        <span className="font-pixel text-[7px]" style={{ color: "#9a8070" }}>{open ? "▲" : "▼"}</span>
+        <h3 className="font-pixel text-[14px]" style={{ color: "#2c1a0e" }}>📱 SHARE YOUR TAMAGO</h3>
+        <span className="font-pixel text-[14px]" style={{ color: "#9a8070" }}>{open ? "▲" : "▼"}</span>
       </button>
 
       {open && (
@@ -140,10 +140,10 @@ function QRShare({ slug }: { slug: string }) {
           <div className="rounded-xl bg-white p-3 shadow-inner">
             <QRCodeSVG value={url} size={160} level="M" />
           </div>
-          <p className="font-pixel text-[6px] text-center break-all" style={{ color: "#9a8070" }}>{url}</p>
+          <p className="font-pixel text-[12px] text-center break-all" style={{ color: "#9a8070" }}>{url}</p>
           <button
             onClick={() => navigator.clipboard?.writeText(url)}
-            className="border-2 border-[#2c1a0e] px-4 py-1.5 font-pixel text-[6px] transition-transform active:scale-95"
+            className="border-2 border-[#2c1a0e] px-4 py-1.5 font-pixel text-[12px] transition-transform active:scale-95"
             style={{ color: "#6b4c35", boxShadow: "2px 2px 0 0 #2c1a0e" }}
           >
             COPY LINK
@@ -386,7 +386,7 @@ export default function MyTamago() {
           }}
         />
         {state.is_sleeping && (
-          <span className="absolute -right-2 -top-2 font-pixel text-[8px] animate-pixel-pulse" style={{ color: "#7c5cbf" }}>
+          <span className="absolute -right-2 -top-2 font-pixel text-[16px] animate-pixel-pulse" style={{ color: "#7c5cbf" }}>
             ZZZ
           </span>
         )}
@@ -434,7 +434,7 @@ export default function MyTamago() {
 
       {/* Refresh */}
       <button onClick={handleRefresh}
-        className="pixel-box-sm w-full py-2 font-pixel text-[7px] text-center transition-transform active:scale-95"
+        className="pixel-box-sm w-full py-2 font-pixel text-[14px] text-center transition-transform active:scale-95"
         style={{ color: "#6b4c35" }}>
         ↻ REFRESH DATA
       </button>
@@ -450,19 +450,19 @@ export default function MyTamago() {
 
       {/* Invite */}
       <div className="pixel-box w-full p-4">
-        <h3 className="mb-3 font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>INVITE SUPPORTERS</h3>
+        <h3 className="mb-3 font-pixel text-[14px]" style={{ color: "#2c1a0e" }}>INVITE SUPPORTERS</h3>
         <div className="flex gap-2">
           <input type="tel" placeholder="Phone number" value={invitePhone}
             onChange={(e) => setInvitePhone(e.target.value)}
             className="flex-1 border-2 border-[#2c1a0e] px-3 py-2 text-sm outline-none focus:border-tamago-accent font-body bg-[#fffef5]" />
           <button onClick={handleInvite}
-            className="border-2 border-[#2c1a0e] px-4 py-2 font-pixel text-[7px] bg-tamago-accent text-white transition-transform active:scale-95"
+            className="border-2 border-[#2c1a0e] px-4 py-2 font-pixel text-[14px] bg-tamago-accent text-white transition-transform active:scale-95"
             style={{ boxShadow: "2px 2px 0 0 #2c1a0e" }}>
             SEND
           </button>
         </div>
         {inviteSent && (
-          <p className="mt-2 text-center font-pixel text-[7px]" style={{ color: "#22c55e" }}>✓ INVITE SENT!</p>
+          <p className="mt-2 text-center font-pixel text-[14px]" style={{ color: "#22c55e" }}>✓ INVITE SENT!</p>
         )}
       </div>
 
@@ -470,13 +470,13 @@ export default function MyTamago() {
       {/* Today's support received */}
       {support.length > 0 && (
         <div className="pixel-box w-full p-4">
-          <h3 className="mb-3 font-pixel text-[7px]" style={{ color: "#2c1a0e" }}>TODAY'S SUPPORT</h3>
+          <h3 className="mb-3 font-pixel text-[14px]" style={{ color: "#2c1a0e" }}>TODAY'S SUPPORT</h3>
           <div className="space-y-2">
             {support.map((s) => (
               <div key={s.id} className="flex items-center gap-2">
                 <span className="text-sm">{ACTION_EMOJI[s.action_type] ?? "?"}</span>
-                <span className="font-pixel text-[6px]" style={{ color: "#6b4c35" }}>{s.supporter_phone}</span>
-                <span className="font-pixel text-[5px] ml-auto" style={{ color: "#b8a898" }}>
+                <span className="font-pixel text-[12px]" style={{ color: "#6b4c35" }}>{s.supporter_phone}</span>
+                <span className="font-pixel text-[10px] ml-auto" style={{ color: "#b8a898" }}>
                   {new Date(s.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })}
                 </span>
               </div>
